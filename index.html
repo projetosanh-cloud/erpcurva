@@ -60,6 +60,20 @@
 
   /* ---- Cards ---- */
   .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-bottom:25px;}
+  .browser-tabs{display:flex;gap:4px;margin:18px 0 0 2px;}
+  .browser-tab{padding:11px 22px;border-radius:12px 12px 0 0;background:#DDE1F0;color:#6B7290;font-family:var(--display);font-weight:600;font-size:13.5px;cursor:pointer;transition:background .15s, color .15s;user-select:none;}
+  .browser-tab:hover{background:#E7EAF6;color:var(--text-color);}
+  .browser-tab.active{background:#fff;color:var(--text-color);box-shadow:0 -3px 10px rgba(30,35,64,.05);}
+  .browser-tabs-panel{background:#fff;border-radius:0 18px 18px 18px;box-shadow:var(--shadow-card);padding:24px 26px;margin-bottom:0;}
+  .browser-tabs-panel .panel, .browser-tabs-panel .kpi{box-shadow:none;}
+  .browser-tabs-panel .kpi{border:1px solid var(--bg-color);}
+  .mes-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;border-radius:20px;background:#F0F1FA;color:var(--text-color);font-size:12.5px;font-weight:600;cursor:pointer;border:1.5px solid transparent;}
+  .mes-chip:hover{background:#E7EAF6;}
+  .mes-chip.chip-ativo{background:var(--accent-color);color:#fff;}
+  .mes-chip .mes-chip-del{background:rgba(0,0,0,.12);border:none;color:inherit;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+  .mes-chip.chip-ativo .mes-chip-del{background:rgba(255,255,255,.25);}
+  .mes-chip .mes-chip-del:hover{background:rgba(0,0,0,.22);}
+
   .kpi{background:#fff;border-radius:var(--card-radius);box-shadow:var(--shadow-card);padding:20px 22px;cursor:pointer;transition:box-shadow .15s, transform .15s;position:relative;overflow:hidden;border-left:5px solid var(--accent-color);}
   .kpi:hover{box-shadow:0 14px 34px -12px rgba(30,35,64,0.2);transform:translateY(-2px);}
   .kpi.selected{box-shadow:0 0 0 3px #DCE0FA, var(--shadow-card);}
@@ -78,6 +92,11 @@
   table{width:100%;border-collapse:collapse;font-size:13px;}
   thead th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#fff;background:var(--primary-color);padding:11px 14px;font-weight:600;font-family:var(--display);position:sticky;top:0;z-index:1;}
   .col-check-row{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 0;color:var(--text-color);}
+  .th-label{display:inline-block;}
+  .th-filter-btn{background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:4px;padding:1px 6px;font-size:10px;cursor:pointer;margin-left:6px;font-family:var(--body);}
+  .th-filter-btn:hover{background:rgba(255,255,255,.32);}
+  .th-filter-btn.filtro-ativo{background:var(--accent-amber);}
+  .th-filter-btn.ordenado{background:var(--accent-green);}
   .col-check-row input{min-width:auto;padding:0;width:15px;height:15px;}
   #tabela-visao-geral.hide-c0 [data-col="0"],
   #tabela-visao-geral.hide-c1 [data-col="1"],
@@ -86,6 +105,14 @@
   #tabela-visao-geral.hide-c4 [data-col="4"],
   #tabela-visao-geral.hide-c5 [data-col="5"],
   #tabela-visao-geral.hide-c6 [data-col="6"]{display:none;}
+  #tabela-analise-detalhe.hide-c0 [data-col="0"],
+  #tabela-analise-detalhe.hide-c1 [data-col="1"],
+  #tabela-analise-detalhe.hide-c2 [data-col="2"],
+  #tabela-analise-detalhe.hide-c3 [data-col="3"],
+  #tabela-analise-detalhe.hide-c4 [data-col="4"],
+  #tabela-analise-detalhe.hide-c5 [data-col="5"]{display:none;}
+  tr.linha-selecionada{background:#EEF0FF;}
+  tr.linha-selecionada:hover{background:#E2E5FF;}
   thead tr th:first-child{border-top-left-radius:8px;}
   thead tr th:last-child{border-top-right-radius:8px;}
   tbody td{padding:9px 10px;border-bottom:1px solid var(--bg-color);color:var(--text-color);}
@@ -167,34 +194,36 @@
           <h2>Visão Geral</h2>
           <p>Endereços com reabastecimento acima do limite configurado.</p>
         </div>
-        <div style="display:flex;gap:10px;align-items:flex-end;">
-          <div class="field">
-            <label>Base de dados</label>
-            <select id="visao-base-select" onchange="alternarBaseVisaoGeral()">
-              <option value="inventario_1mes">Base de 1 mês</option>
-              <option value="inventario_6meses">Base de 6 meses</option>
-            </select>
+        <button class="btn-ghost" onclick="carregarCardsVisaoGeral(true)">↻ Atualizar</button>
+      </div>
+
+      <div class="browser-tabs">
+        <div class="browser-tab active" id="tab-base-6meses" onclick="selecionarAbaBase('inventario_6meses')">📅 Base de 6 meses</div>
+        <div class="browser-tab" id="tab-base-1mes" onclick="selecionarAbaBase('inventario_1mes')">📅 Base de 1 mês</div>
+      </div>
+
+      <div class="browser-tabs-panel">
+        <div id="visao-mes-seletor" style="display:none;margin-bottom:18px;">
+          <span class="meta" style="margin-right:10px;">Mês importado:</span>
+          <span id="visao-mes-chips" style="display:inline-flex;gap:8px;flex-wrap:wrap;"></span>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi" id="card-alerta" onclick="filtrarPorCard('alerta')">
+            <div class="accent-bar"></div>
+            <span class="kpi-hint">endereços</span>
+            <div class="kpi-label">Acima do limite de reabastecimento</div>
+            <div class="kpi-value" id="card-qtd-alerta">–</div>
+            <div class="kpi-sub">Qtd Reabastecimento no Picking Atual &gt; limite definido</div>
           </div>
-          <button class="btn-ghost" onclick="carregarCardsVisaoGeral()">↻ Atualizar</button>
         </div>
-      </div>
 
-      <div class="kpi-row">
-        <div class="kpi" id="card-alerta" onclick="filtrarPorCard('alerta')">
-          <div class="accent-bar"></div>
-          <span class="kpi-hint">endereços</span>
-          <div class="kpi-label">Acima do limite de reabastecimento</div>
-          <div class="kpi-value" id="card-qtd-alerta">–</div>
-          <div class="kpi-sub">Qtd Reabastecimento no Picking Atual &gt; limite definido</div>
+        <div class="panel-title" style="margin-bottom:10px;border-bottom:none;padding-bottom:0;">
+          <h3 style="font-size:13px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px;">Percentual por área de separação</h3>
+          <span class="meta" id="areas-cards-meta"></span>
         </div>
-      </div>
-
-      <div class="panel-title" style="margin-bottom:10px;border-bottom:none;padding-bottom:0;">
-        <h3 style="font-size:13px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px;">Percentual por área de separação</h3>
-        <span class="meta" id="areas-cards-meta"></span>
-      </div>
-      <div class="kpi-row" id="areas-cards-row">
-        <div class="kpi-sub" style="padding:6px 2px;">carregando áreas…</div>
+        <div class="kpi-row" id="areas-cards-row">
+          <div class="kpi-sub" style="padding:6px 2px;">carregando áreas…</div>
       </div>
 
       <div class="panel" id="tabela-panel" style="display:none;">
@@ -214,13 +243,34 @@
           <table id="tabela-visao-geral">
             <thead>
               <tr>
-                <th data-col="0">Código</th><th data-col="1">Endereço</th><th data-col="2">Área Separação</th><th data-col="3">Giro End</th><th data-col="4">Giro Produto</th><th data-col="5">Qtd Reabast. Atual</th><th data-col="6">Descrição</th>
+                <th data-col="0"><span class="th-label">Código</span><button class="th-filter-btn" onclick="abrirFiltroColuna(event, 0)">▾</button></th>
+                <th data-col="1"><span class="th-label">Endereço</span><button class="th-filter-btn" onclick="abrirFiltroColuna(event, 1)">▾</button></th>
+                <th data-col="2"><span class="th-label">Área Separação</span><button class="th-filter-btn" onclick="abrirFiltroColuna(event, 2)">▾</button></th>
+                <th data-col="3"><span class="th-label">Giro End</span><button class="th-filter-btn" onclick="abrirFiltroColuna(event, 3)">▾</button></th>
+                <th data-col="4"><span class="th-label">Giro Produto</span><button class="th-filter-btn" onclick="abrirFiltroColuna(event, 4)">▾</button></th>
+                <th data-col="5"><span class="th-label">Qtd Reabast. Atual</span><button class="th-filter-btn" onclick="abrirFiltroColuna(event, 5)">▾</button></th>
+                <th data-col="6"><span class="th-label">Descrição</span><button class="th-filter-btn" onclick="abrirFiltroColuna(event, 6)">▾</button></th>
               </tr>
             </thead>
             <tbody id="tabela-body"></tbody>
           </table>
         </div>
         <p style="font-size:11.5px;color:var(--ink-soft);margin:12px 2px 0 2px;">Clique em uma linha para abrir o formulário já preenchido com SKU, endereço de origem e a data de hoje.</p>
+      </div>
+      </div>
+
+      <div id="filtro-coluna-painel" style="display:none;position:fixed;background:#fff;border:1px solid #E7EAF6;border-radius:10px;box-shadow:var(--shadow-card);padding:12px;z-index:30;width:230px;">
+        <button class="btn-ghost" style="width:100%;justify-content:flex-start;text-align:left;padding:7px 9px;font-size:12.5px;margin-bottom:4px;" onclick="ordenarColunaAtual('asc')">↑ Classificar crescente</button>
+        <button class="btn-ghost" style="width:100%;justify-content:flex-start;text-align:left;padding:7px 9px;font-size:12.5px;" onclick="ordenarColunaAtual('desc')">↓ Classificar decrescente</button>
+        <input type="text" placeholder="Buscar valor…" id="filtro-coluna-busca" oninput="filtrarListaValoresColuna()" style="width:100%;margin:8px 0 6px 0;">
+        <label class="col-check-row" style="border-bottom:1px solid var(--bg-color);padding-bottom:6px;margin-bottom:4px;">
+          <input type="checkbox" id="filtro-coluna-todos" onchange="alternarTodosValoresColuna(this.checked)"> <strong>Selecionar tudo</strong>
+        </label>
+        <div id="filtro-coluna-lista" style="max-height:160px;overflow:auto;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn-primary" style="flex:1;padding:7px;font-size:12px;" onclick="aplicarFiltroColunaAtual()">OK</button>
+          <button class="btn-ghost" style="flex:1;padding:7px;font-size:12px;" onclick="limparFiltroColunaAtual()">Limpar</button>
+        </div>
       </div>
     </section>
 
@@ -245,24 +295,90 @@
         </div>
         <button class="btn-primary" onclick="carregarAnalise()">Aplicar filtro</button>
         <button class="btn-ghost" onclick="limparFiltroAnalise()">Limpar</button>
+        <button class="btn-ghost" onclick="carregarAnalise(true)">↻ Atualizar</button>
       </div>
 
-      <div class="kpi-row" style="grid-template-columns:1fr;max-width:300px;">
+      <div class="prefill-banner" id="analise-selecao-banner">
+        <span>⤷ Modo de filtro por linha ativo — cards e gráfico mostram apenas a movimentação selecionada.</span>
+        <button class="btn-ghost" style="padding:5px 12px;font-size:12px;margin-left:auto;" onclick="limparSelecaoAnalise()">Limpar seleção</button>
+      </div>
+
+      <div class="kpi-row">
         <div class="kpi">
           <div class="accent-bar"></div>
           <div class="kpi-label">Itens movimentados no período</div>
           <div class="kpi-value" id="card-qtd-movimentados">–</div>
         </div>
+        <div class="kpi">
+          <div class="accent-bar"></div>
+          <div class="kpi-label">Total de abastecimento anterior</div>
+          <div class="kpi-value" id="card-total-anterior">–</div>
+        </div>
+        <div class="kpi">
+          <div class="accent-bar"></div>
+          <div class="kpi-label">Total de abastecimento estimado</div>
+          <div class="kpi-value" id="card-total-estimado">–</div>
+          <div class="kpi-sub">soma de Qtd. Reabastecimento Novo Endereço</div>
+        </div>
+        <div class="kpi teal">
+          <div class="accent-bar"></div>
+          <div class="kpi-label">Redução real</div>
+          <div class="kpi-value" id="card-reducao-real">–</div>
+          <div class="kpi-sub">Anterior − Estimado</div>
+        </div>
+        <div class="kpi teal">
+          <div class="accent-bar"></div>
+          <div class="kpi-label">Redução percentual</div>
+          <div class="kpi-value" id="card-reducao-percentual">–</div>
+          <div class="kpi-sub">(Anterior − Estimado) / Anterior</div>
+        </div>
       </div>
 
-      <div class="charts-row">
-        <div class="panel">
-          <div class="panel-title"><h3>Evolução no período</h3><span class="meta">por dia</span></div>
-          <div class="chart-box"><canvas id="chart-evolucao"></canvas></div>
+      <div class="panel">
+        <div class="panel-title"><h3>Reabastecimento anterior vs. novo endereço</h3><span class="meta" id="chart-reabastecimento-meta">totais do período</span></div>
+        <div class="chart-box"><canvas id="chart-reabastecimento"></canvas></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <h3>Movimentações detalhadas</h3>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span class="meta" id="analise-tabela-meta"></span>
+            <div style="position:relative;">
+              <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" onclick="alternarPainelColunasAnalise()">☰ Colunas</button>
+              <div id="colunas-painel-analise" style="display:none;position:absolute;right:0;top:36px;background:#fff;border:1px solid #E7EAF6;border-radius:10px;box-shadow:var(--shadow-card);padding:12px 14px;z-index:5;min-width:190px;"></div>
+            </div>
+          </div>
         </div>
-        <div class="panel">
-          <div class="panel-title"><h3>Distribuição por SKU</h3><span class="meta">top movimentados</span></div>
-          <div class="chart-box"><canvas id="chart-sku"></canvas></div>
+        <div style="overflow:auto;max-height:440px;">
+          <table id="tabela-analise-detalhe">
+            <thead>
+              <tr>
+                <th data-col="0"><span class="th-label">Data</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 0)">▾</button></th>
+                <th data-col="1"><span class="th-label">SKU</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 1)">▾</button></th>
+                <th data-col="2"><span class="th-label">Endereço Origem</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 2)">▾</button></th>
+                <th data-col="3"><span class="th-label">Qtd. Reabast. Anterior</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 3)">▾</button></th>
+                <th data-col="4"><span class="th-label">Endereço Destino</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 4)">▾</button></th>
+                <th data-col="5"><span class="th-label">Qtd. Reabast. Novo Endereço</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 5)">▾</button></th>
+              </tr>
+            </thead>
+            <tbody id="analise-tabela-body"></tbody>
+          </table>
+        </div>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:12px 2px 0 2px;">Clique em uma linha para ver os cards e o gráfico apenas com aquela movimentação. Clique de novo para sair do modo de filtro.</p>
+      </div>
+
+      <div id="filtro-coluna-painel-analise" style="display:none;position:fixed;background:#fff;border:1px solid #E7EAF6;border-radius:10px;box-shadow:var(--shadow-card);padding:12px;z-index:30;width:230px;">
+        <button class="btn-ghost" style="width:100%;justify-content:flex-start;text-align:left;padding:7px 9px;font-size:12.5px;margin-bottom:4px;" onclick="ordenarColunaAtualAnalise('asc')">↑ Classificar crescente</button>
+        <button class="btn-ghost" style="width:100%;justify-content:flex-start;text-align:left;padding:7px 9px;font-size:12.5px;" onclick="ordenarColunaAtualAnalise('desc')">↓ Classificar decrescente</button>
+        <input type="text" placeholder="Buscar valor…" id="filtro-coluna-busca-analise" oninput="filtrarListaValoresColunaAnalise()" style="width:100%;margin:8px 0 6px 0;">
+        <label class="col-check-row" style="border-bottom:1px solid var(--bg-color);padding-bottom:6px;margin-bottom:4px;">
+          <input type="checkbox" id="filtro-coluna-todos-analise" onchange="alternarTodosValoresColunaAnalise(this.checked)"> <strong>Selecionar tudo</strong>
+        </label>
+        <div id="filtro-coluna-lista-analise" style="max-height:160px;overflow:auto;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn-primary" style="flex:1;padding:7px;font-size:12px;" onclick="aplicarFiltroColunaAtualAnalise()">OK</button>
+          <button class="btn-ghost" style="flex:1;padding:7px;font-size:12px;" onclick="limparFiltroColunaAtualAnalise()">Limpar</button>
         </div>
       </div>
     </section>
@@ -346,6 +462,16 @@
           <div class="upload-card">
             <h4>Base de 6 meses</h4>
             <p>Substitui todos os registros de inventario_6meses</p>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <div class="field" style="flex:1;">
+                <label>Período inicial</label>
+                <input type="month" id="periodo-inicial-6meses" style="width:100%;">
+              </div>
+              <div class="field" style="flex:1;">
+                <label>Período final</label>
+                <input type="month" id="periodo-final-6meses" style="width:100%;">
+              </div>
+            </div>
             <input type="file" id="file-6meses" accept=".xls,.xlsx">
             <div class="progress-line"><div class="progress-fill" id="progress-6meses"></div></div>
             <div class="status-text" id="status-6meses"></div>
@@ -356,7 +482,11 @@
           </div>
           <div class="upload-card">
             <h4>Base de 1 mês</h4>
-            <p>Substitui todos os registros de inventario_1mes</p>
+            <p>Acumula por mês — reenviar o mesmo mês substitui só ele</p>
+            <div class="field" style="margin-bottom:10px;">
+              <label>Mês</label>
+              <input type="month" id="periodo-1mes" style="width:100%;">
+            </div>
             <input type="file" id="file-1mes" accept=".xls,.xlsx">
             <div class="progress-line"><div class="progress-fill" id="progress-1mes"></div></div>
             <div class="status-text" id="status-1mes"></div>
@@ -389,6 +519,7 @@
           </div>
           <button class="btn-primary" onclick="carregarMovimentacoesSalvas()">Aplicar filtro</button>
           <button class="btn-ghost" onclick="limparFiltroMovimentacoesSalvas()">Limpar</button>
+          <button class="btn-ghost" onclick="carregarMovimentacoesSalvas(true)">↻ Atualizar</button>
         </div>
         <div style="overflow:auto;max-height:480px;">
           <table>
@@ -528,31 +659,63 @@ async function checarConexao(){
 }
 
 /* ==========================================================================
+   CACHE LOCAL (reduz consumo de egress do Supabase)
+   Guarda os dados já buscados enquanto a página estiver aberta; trocar de
+   aba, clicar em cards/áreas ou reabrir a mesma base não gera nova consulta
+   ao banco. O cache só é limpo quando: (1) o usuário clica em "Atualizar",
+   ou (2) uma ação de escrita acontece (salvar, editar, excluir, importar,
+   excluir base) — nesses casos o dado correspondente é buscado de novo na
+   hora. Não expira sozinho por tempo: se outra pessoa alterar dados pelo
+   Supabase enquanto sua aba está aberta, isso só aparece pra você depois de
+   clicar em "Atualizar" ou recarregar a página.
+   ========================================================================== */
+let cacheDados = {};
+
+function cacheValido(chave){
+  return !!cacheDados[chave];
+}
+function cacheObter(chave){
+  return cacheDados[chave] ? cacheDados[chave].dados : null;
+}
+function cacheSalvar(chave, dados){
+  cacheDados[chave] = { dados, timestamp: Date.now() };
+}
+function cacheInvalidar(chave){
+  delete cacheDados[chave];
+}
+
+/* ==========================================================================
    ABA 1 · VISÃO GERAL
    ========================================================================== */
 let limiteAtual = 0;
 let ultimoFiltroCard = null;
-
-function baseVisaoGeralAtual(){
-  const sel = document.getElementById('visao-base-select');
-  return sel ? sel.value : 'inventario_1mes';
-}
+let abaBaseAtual = 'inventario_6meses';
+let mesSelecionado1Mes = null;
 
 function rotuloBaseVisaoGeral(){
-  return baseVisaoGeralAtual() === 'inventario_6meses' ? 'base de 6 meses' : 'base de 1 mês';
+  if (abaBaseAtual === 'inventario_1mes'){
+    return mesSelecionado1Mes ? `base de 1 mês (${mesSelecionado1Mes})` : 'base de 1 mês';
+  }
+  return 'base de 6 meses';
 }
 
-function alternarBaseVisaoGeral(){
+function selecionarAbaBase(tabela){
+  abaBaseAtual = tabela;
+  document.getElementById('tab-base-6meses').classList.toggle('active', tabela === 'inventario_6meses');
+  document.getElementById('tab-base-1mes').classList.toggle('active', tabela === 'inventario_1mes');
   document.getElementById('tabela-panel').style.display = 'none';
   ultimoFiltroCard = null;
   document.getElementById('card-alerta').classList.remove('selected');
-  carregarCardsVisaoGeral();
+  carregarCardsVisaoGeral(); // as duas bases já foram pré-carregadas — não gera nova consulta
 }
 
-async function obterLimiteConfigurado(){
+async function obterLimiteConfigurado(forcar){
   if (!sb) return 0;
+  if (!forcar && cacheValido('config_limite')) return cacheObter('config_limite');
   const { data } = await sb.from('configuracoes').select('limite_alerta_reabastecimento').order('id', {ascending:false}).limit(1);
-  return (data && data.length) ? (data[0].limite_alerta_reabastecimento ?? 0) : 0;
+  const valor = (data && data.length) ? (data[0].limite_alerta_reabastecimento ?? 0) : 0;
+  cacheSalvar('config_limite', valor);
+  return valor;
 }
 
 async function buscarTodosRegistros(tabela, colunas, filtroExtra){
@@ -572,27 +735,110 @@ async function buscarTodosRegistros(tabela, colunas, filtroExtra){
   return todos;
 }
 
-async function carregarCardsVisaoGeral(){
+async function obterDadosBaseVisaoGeral(tabela, forcar){
+  const chave = 'base_' + tabela;
+  if (!forcar && cacheValido(chave)) return cacheObter(chave);
+  const dados = await buscarTodosRegistros(tabela, '*');
+  cacheSalvar(chave, dados);
+  return dados;
+}
+
+/* Busca as DUAS bases em paralelo (uma única vez, graças ao cache) — assim
+   trocar entre as abas "6 meses" / "1 mês" nunca gera nova consulta depois
+   do primeiro carregamento da Visão Geral. */
+async function precarregarBasesVisaoGeral(forcar){
+  const [seis, um] = await Promise.all([
+    obterDadosBaseVisaoGeral('inventario_6meses', forcar),
+    obterDadosBaseVisaoGeral('inventario_1mes', forcar)
+  ]);
+  return { inventario_6meses: seis, inventario_1mes: um };
+}
+
+function atualizarSeletorMes(dados1Mes){
+  const wrap = document.getElementById('visao-mes-seletor');
+  if (abaBaseAtual !== 'inventario_1mes'){ wrap.style.display = 'none'; return; }
+
+  const meses = [...new Set((dados1Mes || []).map(r => r.mes).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
+
+  if (meses.length === 0){
+    wrap.style.display = 'none';
+    mesSelecionado1Mes = null;
+    return;
+  }
+
+  wrap.style.display = 'block';
+  if (!mesSelecionado1Mes || !meses.includes(mesSelecionado1Mes)){
+    mesSelecionado1Mes = meses[meses.length - 1];
+  }
+
+  document.getElementById('visao-mes-chips').innerHTML = meses.map(m => {
+    const escapado = m.replace(/'/g, "");
+    const ativo = m === mesSelecionado1Mes;
+    return `
+      <span class="mes-chip${ativo ? ' chip-ativo' : ''}" onclick="selecionarMes1Mes('${escapado}')">
+        ${m}
+        <button class="mes-chip-del" title="Excluir este mês" onclick="event.stopPropagation(); excluirMes1Mes('${escapado}')">×</button>
+      </span>`;
+  }).join('');
+}
+
+function selecionarMes1Mes(mes){
+  mesSelecionado1Mes = mes;
+  document.getElementById('tabela-panel').style.display = 'none';
+  ultimoFiltroCard = null;
+  document.getElementById('card-alerta').classList.remove('selected');
+  carregarCardsVisaoGeral(); // usa cache, sem nova consulta
+}
+
+async function excluirMes1Mes(mes){
   if (!exigirSupabase()) return;
-  limiteAtual = await obterLimiteConfigurado();
-  const tabela = baseVisaoGeralAtual();
+  if (!confirm(`Excluir todos os registros do mês "${mes}" da base de 1 mês? Esta ação não pode ser desfeita.`)) return;
+
+  try{
+    const { error } = await sb.from('inventario_1mes').delete().eq('mes', mes);
+    if (error){ mostrarToast('Erro ao excluir mês', true); console.error(error); return; }
+
+    cacheInvalidar('base_inventario_1mes');
+    mostrarToast(`Mês "${mes}" excluído`);
+    if (mesSelecionado1Mes === mes) mesSelecionado1Mes = null;
+    await carregarCardsVisaoGeral(true);
+    atualizarContagensBases();
+  }catch(e){
+    console.error(e);
+    mostrarToast('Erro inesperado ao excluir mês', true);
+  }
+}
+
+/* Retorna os registros da base/aba atualmente selecionada, já filtrados
+   pelo mês escolhido quando a aba for "1 mês". Não consulta o banco — usa
+   o que já está em cache (buscado em precarregarBasesVisaoGeral). */
+function registrosVisaoGeralAtuais(basesCarregadas){
+  const todos = basesCarregadas[abaBaseAtual] || [];
+  if (abaBaseAtual === 'inventario_1mes' && mesSelecionado1Mes){
+    return todos.filter(r => r.mes === mesSelecionado1Mes);
+  }
+  return todos;
+}
+
+async function carregarCardsVisaoGeral(forcar){
+  if (!exigirSupabase()) return;
+  limiteAtual = await obterLimiteConfigurado(forcar);
   const areasRow = document.getElementById('areas-cards-row');
   const areasMeta = document.getElementById('areas-cards-meta');
 
-  const { count: totalAcima, error: e1 } = await sb
-    .from(tabela)
-    .select('*', { count:'exact', head:true })
-    .gt('qtd_reabastecimento', limiteAtual);
-
-  if (e1){ mostrarToast(`Erro ao consultar ${tabela}`, true); console.error(e1); return; }
-  document.getElementById('card-qtd-alerta').textContent = totalAcima ?? 0;
-
-  let todosRegistros;
+  let bases;
   try{
-    todosRegistros = await buscarTodosRegistros(tabela, 'area_separacao, qtd_reabastecimento');
-  }catch(e2){
-    mostrarToast('Erro ao consultar áreas de separação', true); console.error(e2); return;
+    bases = await precarregarBasesVisaoGeral(forcar);
+  }catch(e){
+    mostrarToast('Erro ao consultar as bases', true); console.error(e); return;
   }
+
+  atualizarSeletorMes(bases.inventario_1mes);
+  const todosRegistros = registrosVisaoGeralAtuais(bases);
+
+  const totalAcima = todosRegistros.filter(r => Number(r.qtd_reabastecimento) > limiteAtual).length;
+  document.getElementById('card-qtd-alerta').textContent = totalAcima;
 
   if (!todosRegistros || todosRegistros.length === 0){
     areasRow.innerHTML = `<div class="kpi-sub" style="padding:6px 2px;">nenhum registro na ${rotuloBaseVisaoGeral()} ainda</div>`;
@@ -605,7 +851,7 @@ async function carregarCardsVisaoGeral(){
   todosRegistros.forEach(item => {
     const area = (item.area_separacao ?? '').toString().trim() || 'Sem área';
     totalPorArea[area] = (totalPorArea[area] || 0) + 1;
-    if (item.qtd_reabastecimento > limiteAtual){
+    if (Number(item.qtd_reabastecimento) > limiteAtual){
       acimaPorArea[area] = (acimaPorArea[area] || 0) + 1;
     }
   });
@@ -635,13 +881,17 @@ async function filtrarPorCard(tipo){
   document.getElementById('card-alerta').classList.toggle('selected', tipo==='alerta');
   document.querySelectorAll('#areas-cards-row .kpi').forEach(el => el.classList.remove('selected'));
 
-  let data;
+  let bases;
   try{
-    data = await buscarTodosRegistros(baseVisaoGeralAtual(), '*', q => q.gt('qtd_reabastecimento', limiteAtual).order('area_separacao', {ascending:true}));
+    bases = await precarregarBasesVisaoGeral();
   }catch(error){
     mostrarToast('Erro ao carregar tabela filtrada', true); console.error(error); return;
   }
-  renderTabelaVisaoGeral(data || [], 'Endereços acima do limite de reabastecimento');
+
+  const data = registrosVisaoGeralAtuais(bases)
+    .filter(r => Number(r.qtd_reabastecimento) > limiteAtual)
+    .sort((a,b) => String(a.area_separacao ?? '').localeCompare(String(b.area_separacao ?? ''), 'pt-BR', {numeric:true}));
+  renderTabelaVisaoGeral(data, 'Endereços acima do limite de reabastecimento');
 }
 
 async function filtrarPorArea(area){
@@ -649,48 +899,192 @@ async function filtrarPorArea(area){
   ultimoFiltroCard = { tipo:'area', area };
   document.getElementById('card-alerta').classList.remove('selected');
 
-  const areaFiltro = area === 'Sem área' ? null : area;
-  let data;
+  let bases;
   try{
-    data = await buscarTodosRegistros(baseVisaoGeralAtual(), '*', q => {
-      q = q.gt('qtd_reabastecimento', limiteAtual);
-      q = areaFiltro === null ? q.is('area_separacao', null) : q.eq('area_separacao', areaFiltro);
-      return q.order('endereco', {ascending:true});
-    });
+    bases = await precarregarBasesVisaoGeral();
   }catch(error){
     mostrarToast('Erro ao carregar tabela filtrada', true); console.error(error); return;
   }
 
-  carregarCardsVisaoGeral(); // reflete a seleção visual no card
-  renderTabelaVisaoGeral(data || [], `Endereços acima do limite — Área ${area}`);
+  const data = registrosVisaoGeralAtuais(bases)
+    .filter(r => {
+      const a = (r.area_separacao ?? '').toString().trim() || 'Sem área';
+      return a === area && Number(r.qtd_reabastecimento) > limiteAtual;
+    })
+    .sort((a,b) => String(a.endereco ?? '').localeCompare(String(b.endereco ?? ''), 'pt-BR', {numeric:true}));
+
+  carregarCardsVisaoGeral(); // reflete a seleção visual no card (usa cache, sem nova consulta)
+  renderTabelaVisaoGeral(data, `Endereços acima do limite — Área ${area}`);
+}
+
+const COL_PROP_VISAO_GERAL = ['sku','endereco','area_separacao','giro_end','giro_produto','qtd_reabastecimento','descricao'];
+let tabelaVisaoGeralDados = [];
+let tabelaVisaoGeralTitulo = '';
+let filtrosColunaVisaoGeral = {};
+let ordenacaoVisaoGeral = { col: null, dir: null };
+let colunaFiltroAtual = null;
+let valoresTempSelecionados = new Set();
+
+function valorColunaVisaoGeral(linha, idx){
+  const v = linha[COL_PROP_VISAO_GERAL[idx]];
+  return v === null || v === undefined ? '' : v;
 }
 
 function renderTabelaVisaoGeral(linhas, titulo){
   const panel = document.getElementById('tabela-panel');
-  const body = document.getElementById('tabela-body');
+  panel.style.display = 'block';
+  tabelaVisaoGeralDados = linhas;
+  tabelaVisaoGeralTitulo = titulo;
+  filtrosColunaVisaoGeral = {};
+  ordenacaoVisaoGeral = { col: null, dir: null };
+  aplicarFiltrosOrdenacaoVisaoGeral();
+}
+
+function aplicarFiltrosOrdenacaoVisaoGeral(){
   const tituloEl = document.getElementById('tabela-titulo');
   const meta = document.getElementById('tabela-meta');
-  panel.style.display = 'block';
-  tituloEl.textContent = titulo;
-  meta.textContent = `${linhas.length} endereços`;
+  const body = document.getElementById('tabela-body');
+  tituloEl.textContent = tabelaVisaoGeralTitulo;
 
-  if (linhas.length === 0){
-    body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="glyph">∅</div>Nenhum endereço acima do limite configurado.</div></td></tr>`;
-    return;
+  let dados = tabelaVisaoGeralDados.slice();
+
+  Object.keys(filtrosColunaVisaoGeral).forEach(idxStr => {
+    const idx = Number(idxStr);
+    const permitidos = filtrosColunaVisaoGeral[idx];
+    dados = dados.filter(l => permitidos.has(String(valorColunaVisaoGeral(l, idx))));
+  });
+
+  if (ordenacaoVisaoGeral.col !== null){
+    const idx = ordenacaoVisaoGeral.col;
+    dados.sort((a, b) => {
+      const va = valorColunaVisaoGeral(a, idx), vb = valorColunaVisaoGeral(b, idx);
+      const na = Number(va), nb = Number(vb);
+      let cmp;
+      if (va !== '' && vb !== '' && !isNaN(na) && !isNaN(nb)){
+        cmp = na - nb;
+      } else {
+        cmp = String(va).localeCompare(String(vb), 'pt-BR', { numeric: true });
+      }
+      return ordenacaoVisaoGeral.dir === 'desc' ? -cmp : cmp;
+    });
   }
 
-  body.innerHTML = linhas.map(l => `
-    <tr onclick="selecionarLinhaParaFormulario('${(l.sku||'').replace(/'/g,"")}', '${(l.endereco||'').replace(/'/g,"")}', ${Number(l.qtd_reabastecimento ?? 0)})">
-      <td data-col="0">${l.sku ?? ''}</td>
-      <td data-col="1">${l.endereco ?? ''}</td>
-      <td data-col="2">${l.area_separacao ?? ''}</td>
-      <td data-col="3">${l.giro_end ?? ''}</td>
-      <td data-col="4">${l.giro_produto ?? ''}</td>
-      <td data-col="5"><span class="badge alta">${l.qtd_reabastecimento ?? 0}</span></td>
-      <td data-col="6">${l.descricao ?? ''}</td>
-    </tr>
-  `).join('');
+  const totalOriginal = tabelaVisaoGeralDados.length;
+  meta.textContent = dados.length === totalOriginal
+    ? `${dados.length} endereços`
+    : `${dados.length} de ${totalOriginal} endereços (filtrado)`;
+
+  if (dados.length === 0){
+    body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="glyph">∅</div>Nenhum endereço encontrado com os filtros atuais.</div></td></tr>`;
+  } else {
+    body.innerHTML = dados.map(l => `
+      <tr onclick="selecionarLinhaParaFormulario('${(l.sku||'').replace(/'/g,"")}', '${(l.endereco||'').replace(/'/g,"")}', ${Number(l.qtd_reabastecimento ?? 0)})">
+        <td data-col="0">${l.sku ?? ''}</td>
+        <td data-col="1">${l.endereco ?? ''}</td>
+        <td data-col="2">${l.area_separacao ?? ''}</td>
+        <td data-col="3">${l.giro_end ?? ''}</td>
+        <td data-col="4">${l.giro_produto ?? ''}</td>
+        <td data-col="5"><span class="badge alta">${l.qtd_reabastecimento ?? 0}</span></td>
+        <td data-col="6">${l.descricao ?? ''}</td>
+      </tr>
+    `).join('');
+  }
+
+  atualizarIndicadoresCabecalhoVisaoGeral();
 }
+
+function atualizarIndicadoresCabecalhoVisaoGeral(){
+  document.querySelectorAll('#tabela-visao-geral .th-filter-btn').forEach((btn, idx) => {
+    btn.classList.toggle('filtro-ativo', !!filtrosColunaVisaoGeral[idx]);
+    btn.classList.toggle('ordenado', ordenacaoVisaoGeral.col === idx);
+    btn.textContent = ordenacaoVisaoGeral.col === idx ? (ordenacaoVisaoGeral.dir === 'asc' ? '▲' : '▼') : '▾';
+  });
+}
+
+/* ---------------------------- Painel de filtro/ordenação por coluna (estilo Excel) ---------------------------- */
+function abrirFiltroColuna(ev, idx){
+  ev.stopPropagation();
+  colunaFiltroAtual = idx;
+
+  const valoresUnicos = [...new Set(tabelaVisaoGeralDados.map(l => String(valorColunaVisaoGeral(l, idx))))]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
+  const selecionadosAtuais = filtrosColunaVisaoGeral[idx] || new Set(valoresUnicos);
+  valoresTempSelecionados = new Set(selecionadosAtuais);
+
+  const lista = document.getElementById('filtro-coluna-lista');
+  lista.innerHTML = valoresUnicos.map(v => {
+    const escapado = v.replace(/"/g, '&quot;');
+    return `
+      <label class="col-check-row">
+        <input type="checkbox" data-valor="${escapado}" ${valoresTempSelecionados.has(v) ? 'checked' : ''} onchange="alternarValorColuna(this.dataset.valor, this.checked)">
+        ${v === '' ? '(vazio)' : v}
+      </label>`;
+  }).join('');
+
+  document.getElementById('filtro-coluna-todos').checked = valoresTempSelecionados.size === valoresUnicos.length;
+  document.getElementById('filtro-coluna-busca').value = '';
+
+  const painel = document.getElementById('filtro-coluna-painel');
+  const rect = ev.currentTarget.getBoundingClientRect();
+  painel.style.display = 'block';
+  const larguraPainel = 230;
+  painel.style.top = (rect.bottom + 4) + 'px';
+  painel.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - larguraPainel - 12)) + 'px';
+}
+
+function alternarValorColuna(valor, marcado){
+  if (marcado) valoresTempSelecionados.add(valor); else valoresTempSelecionados.delete(valor);
+}
+
+function alternarTodosValoresColuna(marcado){
+  const checks = document.querySelectorAll('#filtro-coluna-lista input[type=checkbox]');
+  checks.forEach(c => {
+    if (c.closest('.col-check-row').style.display === 'none') return;
+    c.checked = marcado;
+    if (marcado) valoresTempSelecionados.add(c.dataset.valor); else valoresTempSelecionados.delete(c.dataset.valor);
+  });
+}
+
+function filtrarListaValoresColuna(){
+  const termo = document.getElementById('filtro-coluna-busca').value.toLowerCase();
+  document.querySelectorAll('#filtro-coluna-lista .col-check-row').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(termo) ? 'flex' : 'none';
+  });
+}
+
+function aplicarFiltroColunaAtual(){
+  if (colunaFiltroAtual === null) return;
+  const totalValores = document.querySelectorAll('#filtro-coluna-lista .col-check-row').length;
+  if (valoresTempSelecionados.size >= totalValores){
+    delete filtrosColunaVisaoGeral[colunaFiltroAtual];
+  } else {
+    filtrosColunaVisaoGeral[colunaFiltroAtual] = new Set(valoresTempSelecionados);
+  }
+  document.getElementById('filtro-coluna-painel').style.display = 'none';
+  aplicarFiltrosOrdenacaoVisaoGeral();
+}
+
+function limparFiltroColunaAtual(){
+  if (colunaFiltroAtual === null) return;
+  delete filtrosColunaVisaoGeral[colunaFiltroAtual];
+  document.getElementById('filtro-coluna-painel').style.display = 'none';
+  aplicarFiltrosOrdenacaoVisaoGeral();
+}
+
+function ordenarColunaAtual(dir){
+  if (colunaFiltroAtual === null) return;
+  ordenacaoVisaoGeral = { col: colunaFiltroAtual, dir };
+  document.getElementById('filtro-coluna-painel').style.display = 'none';
+  aplicarFiltrosOrdenacaoVisaoGeral();
+}
+
+document.addEventListener('click', (ev) => {
+  const painel = document.getElementById('filtro-coluna-painel');
+  if (painel && painel.style.display !== 'none' && !painel.contains(ev.target) && !ev.target.classList.contains('th-filter-btn')){
+    painel.style.display = 'none';
+  }
+});
+
 
 /* ==========================================================================
    ABA 3 · FORMULÁRIO — redirecionamento + salvar
@@ -726,14 +1120,36 @@ async function salvarMovimentacao(ev){
   const { error } = await sb.from('movimentacoes_formulario').insert([registro]);
   if (error){ mostrarToast('Erro ao salvar movimentação', true); console.error(error); return; }
 
+  cacheInvalidar('movimentacoes_formulario');
   mostrarToast('Movimentação salva com sucesso');
   limparFormulario();
+}
+
+/* ---------------------------- Dados compartilhados: movimentações salvas ---------------------------- */
+async function obterMovimentacoesTodas(forcar){
+  const chave = 'movimentacoes_formulario';
+  if (!forcar && cacheValido(chave)) return cacheObter(chave);
+  const dados = await buscarTodosRegistros('movimentacoes_formulario', '*', q => q.order('dt_movimentacao', {ascending:true}));
+  cacheSalvar(chave, dados);
+  return dados;
 }
 
 /* ==========================================================================
    ABA 2 · ANÁLISE
    ========================================================================== */
-let chartEvolucao, chartSku;
+let chartReabastecimento;
+const COL_PROP_ANALISE = ['dt_movimentacao','sku','endereco_origem','qtd_reabast_anterior','endereco_destino','qtd_reabast_novo'];
+let analiseLinhasCache = [];
+let filtrosColunaAnalise = {};
+let ordenacaoAnalise = { col: null, dir: null };
+let analiseLinhaSelecionadaId = null;
+let colunaFiltroAtualAnalise = null;
+let valoresTempSelecionadosAnalise = new Set();
+
+function valorColunaAnalise(linha, idx){
+  const v = linha[COL_PROP_ANALISE[idx]];
+  return v === null || v === undefined ? '' : v;
+}
 
 function limparFiltroAnalise(){
   document.getElementById('analise-inicio').value = '';
@@ -741,52 +1157,266 @@ function limparFiltroAnalise(){
   carregarAnalise();
 }
 
-async function carregarAnalise(){
+async function carregarAnalise(forcar){
   if (!exigirSupabase()) return;
   const inicio = document.getElementById('analise-inicio').value;
   const fim = document.getElementById('analise-fim').value;
 
-  let query = sb.from('movimentacoes_formulario').select('*').order('dt_movimentacao', {ascending:true});
-  if (inicio) query = query.gte('dt_movimentacao', inicio);
-  if (fim) query = query.lte('dt_movimentacao', fim);
+  let todas;
+  try{
+    todas = await obterMovimentacoesTodas(forcar);
+  }catch(error){
+    mostrarToast('Erro ao carregar movimentações', true); console.error(error); return;
+  }
 
-  const { data, error } = await query;
-  if (error){ mostrarToast('Erro ao carregar movimentações', true); console.error(error); return; }
-
-  const linhas = data || [];
-  document.getElementById('card-qtd-movimentados').textContent = linhas.length;
-
-  const porDia = {};
-  linhas.forEach(l => { porDia[l.dt_movimentacao] = (porDia[l.dt_movimentacao]||0) + 1; });
-  const dias = Object.keys(porDia).sort();
-
-  const porSku = {};
-  linhas.forEach(l => { porSku[l.sku] = (porSku[l.sku]||0) + 1; });
-  const topSkus = Object.entries(porSku).sort((a,b)=>b[1]-a[1]).slice(0,8);
-
-  renderChartEvolucao(dias, dias.map(d=>porDia[d]));
-  renderChartSku(topSkus.map(s=>s[0]), topSkus.map(s=>s[1]));
-}
-
-function renderChartEvolucao(labels, valores){
-  const ctx = document.getElementById('chart-evolucao');
-  if (chartEvolucao) chartEvolucao.destroy();
-  chartEvolucao = new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets: [{ label:'Movimentações', data: valores, borderColor:'#e8890c', backgroundColor:'rgba(232,137,12,.12)', fill:true, tension:.3, pointRadius:3 }]},
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  analiseLinhasCache = todas.filter(l => {
+    if (inicio && l.dt_movimentacao < inicio) return false;
+    if (fim && l.dt_movimentacao > fim) return false;
+    return true;
   });
+
+  filtrosColunaAnalise = {};
+  ordenacaoAnalise = { col: null, dir: null };
+  analiseLinhaSelecionadaId = null;
+  aplicarFiltrosOrdenacaoAnalise();
 }
 
-function renderChartSku(labels, valores){
-  const ctx = document.getElementById('chart-sku');
-  if (chartSku) chartSku.destroy();
-  chartSku = new Chart(ctx, {
+function aplicarFiltrosOrdenacaoAnalise(){
+  let dados = analiseLinhasCache.slice();
+
+  Object.keys(filtrosColunaAnalise).forEach(idxStr => {
+    const idx = Number(idxStr);
+    const permitidos = filtrosColunaAnalise[idx];
+    dados = dados.filter(l => permitidos.has(String(valorColunaAnalise(l, idx))));
+  });
+
+  if (ordenacaoAnalise.col !== null){
+    const idx = ordenacaoAnalise.col;
+    dados.sort((a, b) => {
+      const va = valorColunaAnalise(a, idx), vb = valorColunaAnalise(b, idx);
+      const na = Number(va), nb = Number(vb);
+      let cmp;
+      if (va !== '' && vb !== '' && !isNaN(na) && !isNaN(nb)){
+        cmp = na - nb;
+      } else {
+        cmp = String(va).localeCompare(String(vb), 'pt-BR', { numeric: true });
+      }
+      return ordenacaoAnalise.dir === 'desc' ? -cmp : cmp;
+    });
+  }
+
+  renderTabelaAnalise(dados);
+  atualizarIndicadoresCabecalhoAnalise();
+
+  const banner = document.getElementById('analise-selecao-banner');
+  let linhaSelecionada = null;
+  if (analiseLinhaSelecionadaId !== null){
+    linhaSelecionada = analiseLinhasCache.find(l => l.id === analiseLinhaSelecionadaId) || null;
+  }
+
+  const dadosParaCards = linhaSelecionada ? [linhaSelecionada] : dados;
+  banner.classList.toggle('show', !!linhaSelecionada);
+
+  const totalAnterior = dadosParaCards.reduce((soma, l) => soma + Number(l.qtd_reabast_anterior || 0), 0);
+  const totalEstimado = dadosParaCards.reduce((soma, l) => soma + Number(l.qtd_reabast_novo || 0), 0);
+  const reducaoReal = totalAnterior - totalEstimado;
+  const reducaoPercentual = totalAnterior > 0 ? (reducaoReal / totalAnterior) * 100 : 0;
+
+  document.getElementById('card-qtd-movimentados').textContent = dadosParaCards.length;
+  document.getElementById('card-total-anterior').textContent = totalAnterior.toLocaleString('pt-BR');
+  document.getElementById('card-total-estimado').textContent = totalEstimado.toLocaleString('pt-BR');
+  document.getElementById('card-reducao-real').textContent = reducaoReal.toLocaleString('pt-BR');
+  document.getElementById('card-reducao-percentual').textContent = reducaoPercentual.toFixed(1) + '%';
+  document.getElementById('chart-reabastecimento-meta').textContent = linhaSelecionada ? 'movimentação selecionada' : 'totais do período';
+
+  renderChartReabastecimento(totalAnterior, totalEstimado);
+}
+
+function selecionarLinhaAnalise(id){
+  analiseLinhaSelecionadaId = (analiseLinhaSelecionadaId === id) ? null : id;
+  aplicarFiltrosOrdenacaoAnalise();
+}
+
+function limparSelecaoAnalise(){
+  analiseLinhaSelecionadaId = null;
+  aplicarFiltrosOrdenacaoAnalise();
+}
+
+function renderChartReabastecimento(totalAnterior, totalEstimado){
+  const ctx = document.getElementById('chart-reabastecimento');
+  if (chartReabastecimento) chartReabastecimento.destroy();
+  chartReabastecimento = new Chart(ctx, {
     type: 'bar',
-    data: { labels, datasets: [{ label:'Movimentações', data: valores, backgroundColor:'#0c8577', borderRadius:4 }]},
-    options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } } } }
+    data: {
+      labels: ['Qtd. Reabastecimento Anterior', 'Qtd. Reabastecimento Novo Endereço'],
+      datasets: [{
+        label: 'Total de reabastecimento',
+        data: [totalAnterior, totalEstimado],
+        backgroundColor: ['#5347EE', '#2CD9A6'],
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ y:{ beginAtZero:true, ticks:{ precision:0 }, title:{ display:true, text:'Total de reabastecimento' } } }
+    }
   });
 }
+
+function renderTabelaAnalise(linhas){
+  const body = document.getElementById('analise-tabela-body');
+  const meta = document.getElementById('analise-tabela-meta');
+  const totalOriginal = analiseLinhasCache.length;
+  meta.textContent = linhas.length === totalOriginal
+    ? `${linhas.length} movimentações`
+    : `${linhas.length} de ${totalOriginal} movimentações (filtrado)`;
+
+  if (linhas.length === 0){
+    body.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="glyph">∅</div>Nenhuma movimentação encontrada.</div></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = linhas.map(l => `
+    <tr class="${l.id === analiseLinhaSelecionadaId ? 'linha-selecionada' : ''}" onclick="selecionarLinhaAnalise(${l.id})">
+      <td data-col="0">${l.dt_movimentacao ?? ''}</td>
+      <td data-col="1">${l.sku ?? ''}</td>
+      <td data-col="2">${l.endereco_origem ?? ''}</td>
+      <td data-col="3">${l.qtd_reabast_anterior ?? 0}</td>
+      <td data-col="4">${l.endereco_destino ?? ''}</td>
+      <td data-col="5">${l.qtd_reabast_novo ?? 0}</td>
+    </tr>
+  `).join('');
+}
+
+function atualizarIndicadoresCabecalhoAnalise(){
+  document.querySelectorAll('#tabela-analise-detalhe .th-filter-btn').forEach((btn, idx) => {
+    btn.classList.toggle('filtro-ativo', !!filtrosColunaAnalise[idx]);
+    btn.classList.toggle('ordenado', ordenacaoAnalise.col === idx);
+    btn.textContent = ordenacaoAnalise.col === idx ? (ordenacaoAnalise.dir === 'asc' ? '▲' : '▼') : '▾';
+  });
+}
+
+/* ---------------------------- Painel de filtro/ordenação por coluna — Análise ---------------------------- */
+function abrirFiltroColunaAnalise(ev, idx){
+  ev.stopPropagation();
+  colunaFiltroAtualAnalise = idx;
+
+  const valoresUnicos = [...new Set(analiseLinhasCache.map(l => String(valorColunaAnalise(l, idx))))]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
+  const selecionadosAtuais = filtrosColunaAnalise[idx] || new Set(valoresUnicos);
+  valoresTempSelecionadosAnalise = new Set(selecionadosAtuais);
+
+  const lista = document.getElementById('filtro-coluna-lista-analise');
+  lista.innerHTML = valoresUnicos.map(v => {
+    const escapado = v.replace(/"/g, '&quot;');
+    return `
+      <label class="col-check-row">
+        <input type="checkbox" data-valor="${escapado}" ${valoresTempSelecionadosAnalise.has(v) ? 'checked' : ''} onchange="alternarValorColunaAnalise(this.dataset.valor, this.checked)">
+        ${v === '' ? '(vazio)' : v}
+      </label>`;
+  }).join('');
+
+  document.getElementById('filtro-coluna-todos-analise').checked = valoresTempSelecionadosAnalise.size === valoresUnicos.length;
+  document.getElementById('filtro-coluna-busca-analise').value = '';
+
+  const painel = document.getElementById('filtro-coluna-painel-analise');
+  const rect = ev.currentTarget.getBoundingClientRect();
+  painel.style.display = 'block';
+  const larguraPainel = 230;
+  painel.style.top = (rect.bottom + 4) + 'px';
+  painel.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - larguraPainel - 12)) + 'px';
+}
+
+function alternarValorColunaAnalise(valor, marcado){
+  if (marcado) valoresTempSelecionadosAnalise.add(valor); else valoresTempSelecionadosAnalise.delete(valor);
+}
+
+function alternarTodosValoresColunaAnalise(marcado){
+  const checks = document.querySelectorAll('#filtro-coluna-lista-analise input[type=checkbox]');
+  checks.forEach(c => {
+    if (c.closest('.col-check-row').style.display === 'none') return;
+    c.checked = marcado;
+    if (marcado) valoresTempSelecionadosAnalise.add(c.dataset.valor); else valoresTempSelecionadosAnalise.delete(c.dataset.valor);
+  });
+}
+
+function filtrarListaValoresColunaAnalise(){
+  const termo = document.getElementById('filtro-coluna-busca-analise').value.toLowerCase();
+  document.querySelectorAll('#filtro-coluna-lista-analise .col-check-row').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(termo) ? 'flex' : 'none';
+  });
+}
+
+function aplicarFiltroColunaAtualAnalise(){
+  if (colunaFiltroAtualAnalise === null) return;
+  const totalValores = document.querySelectorAll('#filtro-coluna-lista-analise .col-check-row').length;
+  if (valoresTempSelecionadosAnalise.size >= totalValores){
+    delete filtrosColunaAnalise[colunaFiltroAtualAnalise];
+  } else {
+    filtrosColunaAnalise[colunaFiltroAtualAnalise] = new Set(valoresTempSelecionadosAnalise);
+  }
+  document.getElementById('filtro-coluna-painel-analise').style.display = 'none';
+  aplicarFiltrosOrdenacaoAnalise();
+}
+
+function limparFiltroColunaAtualAnalise(){
+  if (colunaFiltroAtualAnalise === null) return;
+  delete filtrosColunaAnalise[colunaFiltroAtualAnalise];
+  document.getElementById('filtro-coluna-painel-analise').style.display = 'none';
+  aplicarFiltrosOrdenacaoAnalise();
+}
+
+function ordenarColunaAtualAnalise(dir){
+  if (colunaFiltroAtualAnalise === null) return;
+  ordenacaoAnalise = { col: colunaFiltroAtualAnalise, dir };
+  document.getElementById('filtro-coluna-painel-analise').style.display = 'none';
+  aplicarFiltrosOrdenacaoAnalise();
+}
+
+/* ---------------------------- Ocultar/exibir colunas inteiras — Análise ---------------------------- */
+const COLUNAS_ANALISE = [
+  { idx: 0, label: 'Data' },
+  { idx: 1, label: 'SKU' },
+  { idx: 2, label: 'Endereço Origem' },
+  { idx: 3, label: 'Qtd. Reabast. Anterior' },
+  { idx: 4, label: 'Endereço Destino' },
+  { idx: 5, label: 'Qtd. Reabast. Novo Endereço' },
+];
+let colunasPainelAnaliseMontado = false;
+
+function montarPainelColunasAnalise(){
+  const painel = document.getElementById('colunas-painel-analise');
+  painel.innerHTML = COLUNAS_ANALISE.map(c => `
+    <label class="col-check-row">
+      <input type="checkbox" checked onchange="alternarColunaAnalise(${c.idx}, this.checked)">
+      ${c.label}
+    </label>
+  `).join('');
+  colunasPainelAnaliseMontado = true;
+}
+
+function alternarPainelColunasAnalise(){
+  if (!colunasPainelAnaliseMontado) montarPainelColunasAnalise();
+  const painel = document.getElementById('colunas-painel-analise');
+  painel.style.display = painel.style.display === 'none' ? 'block' : 'none';
+}
+
+function alternarColunaAnalise(idx, visivel){
+  const tabela = document.getElementById('tabela-analise-detalhe');
+  tabela.classList.toggle('hide-c' + idx, !visivel);
+}
+
+document.addEventListener('click', (ev) => {
+  const painelCol = document.getElementById('colunas-painel-analise');
+  if (painelCol && painelCol.style.display !== 'none' && !painelCol.parentElement.contains(ev.target)){
+    painelCol.style.display = 'none';
+  }
+  const painelFiltro = document.getElementById('filtro-coluna-painel-analise');
+  if (painelFiltro && painelFiltro.style.display !== 'none' && !painelFiltro.contains(ev.target) && !ev.target.classList.contains('th-filter-btn')){
+    painelFiltro.style.display = 'none';
+  }
+});
 
 /* ==========================================================================
    ABA 4 · CONFIGURAÇÕES
@@ -815,6 +1445,7 @@ async function salvarConfiguracoes(){
   };
   const { error } = await sb.from('configuracoes').insert([registro]);
   if (error){ mostrarToast('Erro ao salvar configurações', true); console.error(error); return; }
+  cacheInvalidar('config_limite');
   mostrarToast('Configurações salvas');
 }
 
@@ -829,20 +1460,21 @@ function limparFiltroMovimentacoesSalvas(){
   carregarMovimentacoesSalvas();
 }
 
-async function carregarMovimentacoesSalvas(){
+async function carregarMovimentacoesSalvas(forcar){
   if (!sb) return;
   try{
     const inicio = document.getElementById('mov-filtro-inicio').value;
     const fim = document.getElementById('mov-filtro-fim').value;
 
-    let query = sb.from('movimentacoes_formulario').select('*').order('dt_movimentacao', {ascending:false});
-    if (inicio) query = query.gte('dt_movimentacao', inicio);
-    if (fim) query = query.lte('dt_movimentacao', fim);
+    const todas = await obterMovimentacoesTodas(forcar);
+    let filtradas = todas.filter(l => {
+      if (inicio && l.dt_movimentacao < inicio) return false;
+      if (fim && l.dt_movimentacao > fim) return false;
+      return true;
+    });
+    filtradas.sort((a, b) => String(b.dt_movimentacao ?? '').localeCompare(String(a.dt_movimentacao ?? '')));
 
-    const { data, error } = await query;
-    if (error){ mostrarToast('Erro ao carregar movimentações salvas', true); console.error(error); return; }
-
-    movimentacoesCache = data || [];
+    movimentacoesCache = filtradas;
     linhaEmEdicaoId = null;
     renderMovimentacoesSalvas(movimentacoesCache);
   }catch(e){
@@ -928,9 +1560,10 @@ async function salvarEdicaoMovimentacao(id){
   const { error } = await sb.from('movimentacoes_formulario').update(atualizacao).eq('id', id);
   if (error){ mostrarToast('Erro ao salvar edição', true); console.error(error); return; }
 
+  cacheInvalidar('movimentacoes_formulario');
   mostrarToast('Movimentação atualizada');
   linhaEmEdicaoId = null;
-  carregarMovimentacoesSalvas();
+  carregarMovimentacoesSalvas(true);
 }
 
 async function excluirMovimentacao(id){
@@ -940,14 +1573,23 @@ async function excluirMovimentacao(id){
   const { error } = await sb.from('movimentacoes_formulario').delete().eq('id', id);
   if (error){ mostrarToast('Erro ao excluir movimentação', true); console.error(error); return; }
 
+  cacheInvalidar('movimentacoes_formulario');
   mostrarToast('Movimentação excluída');
-  carregarMovimentacoesSalvas();
+  carregarMovimentacoesSalvas(true);
 }
 
 /* ==========================================================================
    IMPORTAÇÃO DE ARQUIVOS .XLS / .XLSX
    ========================================================================== */
-async function processarArquivoXLS(arquivo, tabelaDestino, progressId, statusId){
+function formatarMesAno(valorInputMonth){
+  if (!valorInputMonth) return '';
+  const [ano, mes] = valorInputMonth.split('-');
+  const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const nome = nomes[Number(mes) - 1] || mes;
+  return `${nome}/${ano}`;
+}
+
+async function processarArquivoXLS(arquivo, tabelaDestino, progressId, statusId, mesValor){
   const progress = document.getElementById(progressId);
   const status = document.getElementById(statusId);
   status.textContent = 'lendo arquivo…';
@@ -970,12 +1612,15 @@ async function processarArquivoXLS(arquivo, tabelaDestino, progressId, statusId)
     giro_produto: linha["Giro Produto"] ?? "",
     qtd_reabastecimento: linha["Qtd Reabastacimento no Picking Atual"] ?? 0,
     sku: linha["Código"] ? String(linha["Código"]) : "",
-    descricao: linha["Descrição"] ?? ""
+    descricao: linha["Descrição"] ?? "",
+    mes: mesValor
   })).filter(l => l.endereco || l.sku);
 
-  status.textContent = 'limpando base anterior…';
+  status.textContent = tabelaDestino === 'inventario_1mes' ? `substituindo dados de "${mesValor}"…` : 'limpando base anterior…';
   progress.style.width = '45%';
-  const { error: delError } = await sb.from(tabelaDestino).delete().neq('id', 0);
+  let delQuery = sb.from(tabelaDestino).delete();
+  delQuery = (tabelaDestino === 'inventario_1mes') ? delQuery.eq('mes', mesValor) : delQuery.neq('id', 0);
+  const { error: delError } = await delQuery;
   if (delError){ status.textContent = 'erro ao limpar base: ' + delError.message; throw delError; }
 
   const TAMANHO_LOTE = 3000;
@@ -990,7 +1635,8 @@ async function processarArquivoXLS(arquivo, tabelaDestino, progressId, statusId)
   }
 
   progress.style.width = '100%';
-  status.textContent = `concluído: ${dadosFiltrados.length} linhas importadas`;
+  status.textContent = `concluído: ${dadosFiltrados.length} linhas importadas (${mesValor})`;
+  cacheInvalidar('base_' + tabelaDestino);
 }
 
 async function processarUploads(){
@@ -1000,9 +1646,27 @@ async function processarUploads(){
 
   if (!f6 && !f1){ mostrarToast('Selecione ao menos um arquivo para importar', true); return; }
 
+  if (f6){
+    const inicio6 = document.getElementById('periodo-inicial-6meses').value;
+    const fim6 = document.getElementById('periodo-final-6meses').value;
+    if (!inicio6 || !fim6){ mostrarToast('Preencha o período inicial e final da base de 6 meses', true); return; }
+  }
+  if (f1){
+    const mes1 = document.getElementById('periodo-1mes').value;
+    if (!mes1){ mostrarToast('Preencha o mês da base de 1 mês', true); return; }
+  }
+
   try{
-    if (f6) await processarArquivoXLS(f6, 'inventario_6meses', 'progress-6meses', 'status-6meses');
-    if (f1) await processarArquivoXLS(f1, 'inventario_1mes', 'progress-1mes', 'status-1mes');
+    if (f6){
+      const inicio6 = document.getElementById('periodo-inicial-6meses').value;
+      const fim6 = document.getElementById('periodo-final-6meses').value;
+      const mesValor6 = `${formatarMesAno(inicio6)} a ${formatarMesAno(fim6)}`;
+      await processarArquivoXLS(f6, 'inventario_6meses', 'progress-6meses', 'status-6meses', mesValor6);
+    }
+    if (f1){
+      const mesValor1 = formatarMesAno(document.getElementById('periodo-1mes').value);
+      await processarArquivoXLS(f1, 'inventario_1mes', 'progress-1mes', 'status-1mes', mesValor1);
+    }
     mostrarToast('Importação concluída');
     checarConexao();
     atualizarContagensBases();
@@ -1036,7 +1700,10 @@ async function excluirBase(tabela, progressId, statusId, contagemId){
   if (!exigirSupabase()) return;
 
   const nomeAmigavel = tabela === 'inventario_6meses' ? 'base de 6 meses' : 'base de 1 mês';
-  if (!confirm(`Excluir TODOS os registros da ${nomeAmigavel} (${tabela})? Esta ação não pode ser desfeita.`)) return;
+  const aviso = tabela === 'inventario_1mes'
+    ? `Excluir TODOS os meses já importados na base de 1 mês (${tabela})? Isso apaga o histórico inteiro, não só o mês selecionado. Esta ação não pode ser desfeita.`
+    : `Excluir TODOS os registros da ${nomeAmigavel} (${tabela})? Esta ação não pode ser desfeita.`;
+  if (!confirm(aviso)) return;
 
   const status = document.getElementById(statusId);
   const progress = document.getElementById(progressId);
@@ -1049,6 +1716,8 @@ async function excluirBase(tabela, progressId, statusId, contagemId){
 
     progress.style.width = '100%';
     status.textContent = `${nomeAmigavel} excluída`;
+    cacheInvalidar('base_' + tabela);
+    if (tabela === 'inventario_1mes') mesSelecionado1Mes = null;
     mostrarToast(`${nomeAmigavel} excluída com sucesso`);
     checarConexao();
     atualizarContagensBases();
@@ -1063,7 +1732,6 @@ async function excluirBase(tabela, progressId, statusId, contagemId){
 document.getElementById('form-data').value = new Date().toISOString().split('T')[0];
 checarConexao();
 carregarCardsVisaoGeral();
-carregarAnalise();
 
 /* ==========================================================================
 SQL — rode no SQL Editor do Supabase antes do primeiro uso:
@@ -1072,7 +1740,7 @@ CREATE TABLE inventario_6meses (
   id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
   cod_end NUMERIC, endereco TEXT, area_separacao NUMERIC,
   giro_end TEXT, giro_produto TEXT, qtd_reabastecimento NUMERIC DEFAULT 0,
-  sku TEXT, descricao TEXT,
+  sku TEXT, descricao TEXT, mes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
 );
 
@@ -1080,7 +1748,7 @@ CREATE TABLE inventario_1mes (
   id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
   cod_end NUMERIC, endereco TEXT, area_separacao NUMERIC,
   giro_end TEXT, giro_produto TEXT, qtd_reabastecimento NUMERIC DEFAULT 0,
-  sku TEXT, descricao TEXT,
+  sku TEXT, descricao TEXT, mes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
 );
 
@@ -1102,13 +1770,24 @@ CREATE TABLE configuracoes (
 CREATE INDEX idx_inv6m_sku ON inventario_6meses(sku);
 CREATE INDEX idx_inv6m_area ON inventario_6meses(area_separacao);
 CREATE INDEX idx_inv6m_reabast ON inventario_6meses(qtd_reabastecimento);
+CREATE INDEX idx_inv6m_mes ON inventario_6meses(mes);
 CREATE INDEX idx_inv1m_sku ON inventario_1mes(sku);
 CREATE INDEX idx_inv1m_area ON inventario_1mes(area_separacao);
 CREATE INDEX idx_inv1m_reabast ON inventario_1mes(qtd_reabastecimento);
+CREATE INDEX idx_inv1m_mes ON inventario_1mes(mes);
 CREATE INDEX idx_mov_dt ON movimentacoes_formulario(dt_movimentacao);
 
 -- Lembre de habilitar RLS + policies (ou desabilitar RLS) conforme o
 -- padrão que você já usa nos outros dashboards do CD.
+
+-- ========================================================================
+-- SE AS TABELAS JÁ EXISTEM (base já em uso antes deste recurso):
+-- rode só este bloco para adicionar a coluna "mes" sem perder dados.
+-- ========================================================================
+ALTER TABLE inventario_6meses ADD COLUMN IF NOT EXISTS mes TEXT;
+ALTER TABLE inventario_1mes ADD COLUMN IF NOT EXISTS mes TEXT;
+CREATE INDEX IF NOT EXISTS idx_inv6m_mes ON inventario_6meses(mes);
+CREATE INDEX IF NOT EXISTS idx_inv1m_mes ON inventario_1mes(mes);
 ========================================================================== */
 </script>
 </body>
