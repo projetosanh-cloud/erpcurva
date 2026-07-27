@@ -229,6 +229,14 @@
           <div class="kpi-sub" style="padding:6px 2px;">carregando áreas…</div>
       </div>
 
+        <div class="panel-title" style="margin-bottom:10px;border-bottom:none;padding-bottom:0;">
+          <h3 style="font-size:13px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px;">Giro do Produto</h3>
+          <span class="meta" id="giro-cards-meta"></span>
+        </div>
+        <div class="kpi-row" id="giro-cards-row">
+          <div class="kpi-sub" style="padding:6px 2px;">carregando giros…</div>
+        </div>
+
       <div class="panel" id="tabela-panel" style="display:none;">
         <div class="panel-title">
           <h3 id="tabela-titulo">Endereços filtrados</h3>
@@ -725,6 +733,7 @@ function cacheInvalidar(chave){
    ========================================================================== */
 let limiteAtual = 0;
 let ultimoFiltroCard = null;
+let ultimoFiltroGiro = null;
 let abaBaseAtual = 'inventario_6meses';
 let mesSelecionado1Mes = null;
 
@@ -741,6 +750,7 @@ function selecionarAbaBase(tabela){
   document.getElementById('tab-base-1mes').classList.toggle('active', tabela === 'inventario_1mes');
   document.getElementById('tabela-panel').style.display = 'none';
   ultimoFiltroCard = null;
+  ultimoFiltroGiro = null;
   document.getElementById('card-alerta').classList.remove('selected');
   carregarCardsVisaoGeral(); // as duas bases já foram pré-carregadas — não gera nova consulta
 }
@@ -827,6 +837,7 @@ function selecionarMes1Mes(mes){
   mesSelecionado1Mes = mes;
   document.getElementById('tabela-panel').style.display = 'none';
   ultimoFiltroCard = null;
+  ultimoFiltroGiro = null;
   document.getElementById('card-alerta').classList.remove('selected');
   carregarCardsVisaoGeral(); // usa cache, sem nova consulta
 }
@@ -885,6 +896,8 @@ async function carregarCardsVisaoGeral(forcar){
   if (!todosRegistros || todosRegistros.length === 0){
     areasRow.innerHTML = `<div class="kpi-sub" style="padding:6px 2px;">nenhum registro na ${rotuloBaseVisaoGeral()} ainda</div>`;
     areasMeta.textContent = '';
+    document.getElementById('giro-cards-row').innerHTML = `<div class="kpi-sub" style="padding:6px 2px;">nenhum registro na ${rotuloBaseVisaoGeral()} ainda</div>`;
+    document.getElementById('giro-cards-meta').textContent = '';
     return;
   }
 
@@ -915,6 +928,58 @@ async function carregarCardsVisaoGeral(forcar){
         <div class="kpi-sub">${acima} de ${total} endereços acima do limite</div>
       </div>`;
   }).join('');
+
+  renderCardsGiro(todosRegistros);
+}
+
+/* Cards de Giro do Produto — filtro independente dos cards de alerta/área:
+   clicar aqui não altera a seleção deles, e vice-versa. */
+function renderCardsGiro(todosRegistros){
+  const giroRow = document.getElementById('giro-cards-row');
+  const giroMeta = document.getElementById('giro-cards-meta');
+
+  const totalPorGiro = {};
+  todosRegistros.forEach(item => {
+    const giro = (item.giro_produto ?? '').toString().trim() || 'Sem giro';
+    totalPorGiro[giro] = (totalPorGiro[giro] || 0) + 1;
+  });
+
+  const giros = Object.keys(totalPorGiro).sort((a,b)=> a.localeCompare(b, 'pt-BR', {numeric:true}));
+  giroMeta.textContent = `${giros.length} giro(s) na ${rotuloBaseVisaoGeral()}`;
+
+  giroRow.innerHTML = giros.map(giro => {
+    const total = totalPorGiro[giro];
+    const selecionado = ultimoFiltroGiro === giro;
+    return `
+      <div class="kpi${selecionado ? ' selected' : ''}" data-giro="${giro.replace(/"/g,'&quot;')}" onclick="filtrarPorGiro('${giro.replace(/'/g,"")}')">
+        <div class="accent-bar" style="background:var(--accent-amber);"></div>
+        <span class="kpi-hint">endereços</span>
+        <div class="kpi-label">Giro do Produto ${giro}</div>
+        <div class="kpi-value">${total}</div>
+        <div class="kpi-sub">itens com esse giro na ${rotuloBaseVisaoGeral()}</div>
+      </div>`;
+  }).join('');
+}
+
+async function filtrarPorGiro(giro){
+  if (!exigirSupabase()) return;
+  ultimoFiltroGiro = giro;
+  document.querySelectorAll('#giro-cards-row .kpi').forEach(el => {
+    el.classList.toggle('selected', el.dataset.giro === giro);
+  });
+
+  let bases;
+  try{
+    bases = await precarregarBasesVisaoGeral();
+  }catch(error){
+    mostrarToast('Erro ao carregar tabela filtrada', true); console.error(error); return;
+  }
+
+  const data = registrosVisaoGeralAtuais(bases)
+    .filter(r => ((r.giro_produto ?? '').toString().trim() || 'Sem giro') === giro)
+    .sort((a,b) => String(a.endereco ?? '').localeCompare(String(b.endereco ?? ''), 'pt-BR', {numeric:true}));
+
+  renderTabelaVisaoGeral(data, `Endereços com Giro do Produto ${giro}`);
 }
 
 async function filtrarPorCard(tipo){
