@@ -110,7 +110,10 @@
   #tabela-analise-detalhe.hide-c2 [data-col="2"],
   #tabela-analise-detalhe.hide-c3 [data-col="3"],
   #tabela-analise-detalhe.hide-c4 [data-col="4"],
-  #tabela-analise-detalhe.hide-c5 [data-col="5"]{display:none;}
+  #tabela-analise-detalhe.hide-c5 [data-col="5"],
+  #tabela-analise-detalhe.hide-c6 [data-col="6"],
+  #tabela-analise-detalhe.hide-c7 [data-col="7"],
+  #tabela-analise-detalhe.hide-c8 [data-col="8"]{display:none;}
   tr.linha-selecionada{background:#EEF0FF;}
   tr.linha-selecionada:hover{background:#E2E5FF;}
   thead tr th:first-child{border-top-left-radius:8px;}
@@ -214,7 +217,7 @@
             <span class="kpi-hint">endereços</span>
             <div class="kpi-label">Acima do limite de reabastecimento</div>
             <div class="kpi-value" id="card-qtd-alerta">–</div>
-            <div class="kpi-sub">Qtd Reabastecimento no Picking Atual &gt; limite definido</div>
+            <div class="kpi-sub" id="card-alerta-sub">Qtd Reabastecimento no Picking Atual &gt; limite definido</div>
           </div>
         </div>
 
@@ -332,11 +335,23 @@
           <div class="kpi-value" id="card-reducao-percentual">–</div>
           <div class="kpi-sub">(Anterior − Estimado) / Anterior</div>
         </div>
+        <div class="kpi">
+          <div class="accent-bar"></div>
+          <div class="kpi-label">Itens movimentados por curva de destino</div>
+          <div class="kpi-value" id="card-total-curva-destino">–</div>
+          <div class="kpi-sub">soma das movimentações com Curva do Endereço de Destino preenchida</div>
+        </div>
       </div>
 
-      <div class="panel">
-        <div class="panel-title"><h3>Reabastecimento anterior vs. novo endereço</h3><span class="meta" id="chart-reabastecimento-meta">totais do período</span></div>
-        <div class="chart-box"><canvas id="chart-reabastecimento"></canvas></div>
+      <div class="charts-row">
+        <div class="panel">
+          <div class="panel-title"><h3>Reabastecimento anterior vs. novo endereço</h3><span class="meta" id="chart-reabastecimento-meta">totais do período</span></div>
+          <div class="chart-box"><canvas id="chart-reabastecimento"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title"><h3>Movimentações por curva de destino</h3><span class="meta" id="chart-curva-destino-meta">distribuição do período</span></div>
+          <div class="chart-box"><canvas id="chart-curva-destino"></canvas></div>
+        </div>
       </div>
 
       <div class="panel">
@@ -360,6 +375,9 @@
                 <th data-col="3"><span class="th-label">Qtd. Reabast. Anterior</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 3)">▾</button></th>
                 <th data-col="4"><span class="th-label">Endereço Destino</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 4)">▾</button></th>
                 <th data-col="5"><span class="th-label">Qtd. Reabast. Novo Endereço</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 5)">▾</button></th>
+                <th data-col="6"><span class="th-label">Curva Produto</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 6)">▾</button></th>
+                <th data-col="7"><span class="th-label">Curva Endereço</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 7)">▾</button></th>
+                <th data-col="8"><span class="th-label">Curva Endereço Destino</span><button class="th-filter-btn" onclick="abrirFiltroColunaAnalise(event, 8)">▾</button></th>
               </tr>
             </thead>
             <tbody id="analise-tabela-body"></tbody>
@@ -394,7 +412,7 @@
       </div>
 
       <div class="prefill-banner" id="prefill-banner">
-        <span>⤷ Preenchido automaticamente a partir do endereço selecionado na Visão Geral, incluindo a quantidade de reabastecimento atual.</span>
+        <span>⤷ Preenchido automaticamente a partir do endereço selecionado na Visão Geral, incluindo quantidade de reabastecimento atual, curva do produto e curva do endereço.</span>
       </div>
 
       <div class="panel">
@@ -408,8 +426,16 @@
             <input type="text" id="form-sku" required placeholder="ex: 000123">
           </div>
           <div class="field">
+            <label>Curva do produto</label>
+            <input type="text" id="form-curva-produto" placeholder="preenchido automaticamente (Giro Produto)">
+          </div>
+          <div class="field">
             <label>Endereço de origem</label>
             <input type="text" id="form-origem" required placeholder="ex: A-01-02-03">
+          </div>
+          <div class="field">
+            <label>Curva do endereço</label>
+            <input type="text" id="form-curva-endereco" placeholder="preenchido automaticamente (Giro End)">
           </div>
           <div class="field">
             <label>Qtd. reabastecimento anterior</label>
@@ -418,6 +444,10 @@
           <div class="field">
             <label>Endereço de destino</label>
             <input type="text" id="form-destino" required placeholder="ex: A-02-04-01">
+          </div>
+          <div class="field">
+            <label>Curva do endereço de destino</label>
+            <input type="text" id="form-curva-endereco-destino" placeholder="preencha manualmente">
           </div>
           <div class="field">
             <label>Qtd. reabastecimento novo endereço</label>
@@ -443,16 +473,22 @@
 
       <div class="panel">
         <div class="panel-title"><h3>Parâmetros</h3></div>
-        <div class="settings-grid">
+        <div class="settings-grid" style="max-width:640px;">
           <div class="field">
             <label>Periodicidade de reabastecimento (dias)</label>
             <input type="number" id="cfg-periodicidade" placeholder="7">
           </div>
+          <div></div>
           <div class="field">
-            <label>Limite de alerta (Qtd Reabast. Atual &gt;)</label>
-            <input type="number" id="cfg-limite" placeholder="0">
+            <label>Limite de alerta — Base 6 meses (Qtd Reabast. Atual &gt;)</label>
+            <input type="number" id="cfg-limite-6meses" placeholder="0">
+          </div>
+          <div class="field">
+            <label>Limite de alerta — Base 1 mês (Qtd Reabast. Atual &gt;)</label>
+            <input type="number" id="cfg-limite-1mes" placeholder="0">
           </div>
         </div>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:0 0 14px 2px;">Cada base é filtrada pelo seu próprio limite, de forma proporcional ao período (ex.: 12 em 6 meses ≈ 1 por mês).</p>
         <button class="btn-primary" onclick="salvarConfiguracoes()">Salvar parâmetros</button>
       </div>
 
@@ -525,7 +561,7 @@
           <table>
             <thead>
               <tr>
-                <th>Data</th><th>SKU</th><th>Origem</th><th>Qtd. Anterior</th><th>Destino</th><th>Qtd. Novo</th><th></th>
+                <th>Data</th><th>SKU</th><th>Origem</th><th>Qtd. Anterior</th><th>Destino</th><th>Qtd. Novo</th><th>Curva Produto</th><th>Curva Endereço</th><th>Curva End. Destino</th><th></th>
               </tr>
             </thead>
             <tbody id="mov-tabela-body"></tbody>
@@ -709,13 +745,17 @@ function selecionarAbaBase(tabela){
   carregarCardsVisaoGeral(); // as duas bases já foram pré-carregadas — não gera nova consulta
 }
 
-async function obterLimiteConfigurado(forcar){
-  if (!sb) return 0;
-  if (!forcar && cacheValido('config_limite')) return cacheObter('config_limite');
-  const { data } = await sb.from('configuracoes').select('limite_alerta_reabastecimento').order('id', {ascending:false}).limit(1);
-  const valor = (data && data.length) ? (data[0].limite_alerta_reabastecimento ?? 0) : 0;
-  cacheSalvar('config_limite', valor);
-  return valor;
+async function obterLimitesConfigurados(forcar){
+  const padrao = { inventario_6meses: 0, inventario_1mes: 0 };
+  if (!sb) return padrao;
+  if (!forcar && cacheValido('config_limites')) return cacheObter('config_limites');
+  const { data } = await sb.from('configuracoes').select('limite_alerta_6meses, limite_alerta_1mes').order('id', {ascending:false}).limit(1);
+  const valores = (data && data.length) ? {
+    inventario_6meses: data[0].limite_alerta_6meses ?? 0,
+    inventario_1mes: data[0].limite_alerta_1mes ?? 0
+  } : padrao;
+  cacheSalvar('config_limites', valores);
+  return valores;
 }
 
 async function buscarTodosRegistros(tabela, colunas, filtroExtra){
@@ -823,7 +863,8 @@ function registrosVisaoGeralAtuais(basesCarregadas){
 
 async function carregarCardsVisaoGeral(forcar){
   if (!exigirSupabase()) return;
-  limiteAtual = await obterLimiteConfigurado(forcar);
+  const limites = await obterLimitesConfigurados(forcar);
+  limiteAtual = limites[abaBaseAtual] ?? 0;
   const areasRow = document.getElementById('areas-cards-row');
   const areasMeta = document.getElementById('areas-cards-meta');
 
@@ -839,6 +880,7 @@ async function carregarCardsVisaoGeral(forcar){
 
   const totalAcima = todosRegistros.filter(r => Number(r.qtd_reabastecimento) > limiteAtual).length;
   document.getElementById('card-qtd-alerta').textContent = totalAcima;
+  document.getElementById('card-alerta-sub').textContent = `Qtd Reabastecimento no Picking Atual > ${limiteAtual} (${rotuloBaseVisaoGeral()})`;
 
   if (!todosRegistros || todosRegistros.length === 0){
     areasRow.innerHTML = `<div class="kpi-sub" style="padding:6px 2px;">nenhum registro na ${rotuloBaseVisaoGeral()} ainda</div>`;
@@ -978,7 +1020,7 @@ function aplicarFiltrosOrdenacaoVisaoGeral(){
     body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="glyph">∅</div>Nenhum endereço encontrado com os filtros atuais.</div></td></tr>`;
   } else {
     body.innerHTML = dados.map(l => `
-      <tr onclick="selecionarLinhaParaFormulario('${(l.sku||'').replace(/'/g,"")}', '${(l.endereco||'').replace(/'/g,"")}', ${Number(l.qtd_reabastecimento ?? 0)})">
+      <tr onclick="selecionarLinhaParaFormulario('${(l.sku||'').replace(/'/g,"")}', '${(l.endereco||'').replace(/'/g,"")}', ${Number(l.qtd_reabastecimento ?? 0)}, '${(l.giro_produto||'').replace(/'/g,"")}', '${(l.giro_end||'').replace(/'/g,"")}')">
         <td data-col="0">${l.sku ?? ''}</td>
         <td data-col="1">${l.endereco ?? ''}</td>
         <td data-col="2">${l.area_separacao ?? ''}</td>
@@ -1089,12 +1131,14 @@ document.addEventListener('click', (ev) => {
 /* ==========================================================================
    ABA 3 · FORMULÁRIO — redirecionamento + salvar
    ========================================================================== */
-function selecionarLinhaParaFormulario(sku, enderecoOrigem, qtdReabastecimentoAtual){
+function selecionarLinhaParaFormulario(sku, enderecoOrigem, qtdReabastecimentoAtual, giroProduto, giroEndereco){
   const hoje = new Date().toISOString().split('T')[0];
   document.getElementById('form-data').value = hoje;
   document.getElementById('form-sku').value = sku;
   document.getElementById('form-origem').value = enderecoOrigem;
   document.getElementById('form-qtd-anterior').value = qtdReabastecimentoAtual ?? 0;
+  document.getElementById('form-curva-produto').value = giroProduto ?? '';
+  document.getElementById('form-curva-endereco').value = giroEndereco ?? '';
   document.getElementById('prefill-banner').classList.add('show');
   trocarAba('formulario');
 }
@@ -1115,6 +1159,9 @@ async function salvarMovimentacao(ev){
     qtd_reabast_anterior: Number(document.getElementById('form-qtd-anterior').value || 0),
     endereco_destino: document.getElementById('form-destino').value,
     qtd_reabast_novo: Number(document.getElementById('form-qtd-novo').value || 0),
+    curva_produto: document.getElementById('form-curva-produto').value,
+    curva_endereco: document.getElementById('form-curva-endereco').value,
+    curva_endereco_destino: document.getElementById('form-curva-endereco-destino').value,
   };
 
   const { error } = await sb.from('movimentacoes_formulario').insert([registro]);
@@ -1138,7 +1185,8 @@ async function obterMovimentacoesTodas(forcar){
    ABA 2 · ANÁLISE
    ========================================================================== */
 let chartReabastecimento;
-const COL_PROP_ANALISE = ['dt_movimentacao','sku','endereco_origem','qtd_reabast_anterior','endereco_destino','qtd_reabast_novo'];
+let chartCurvaDestino;
+const COL_PROP_ANALISE = ['dt_movimentacao','sku','endereco_origem','qtd_reabast_anterior','endereco_destino','qtd_reabast_novo','curva_produto','curva_endereco','curva_endereco_destino'];
 let analiseLinhasCache = [];
 let filtrosColunaAnalise = {};
 let ordenacaoAnalise = { col: null, dir: null };
@@ -1229,7 +1277,18 @@ function aplicarFiltrosOrdenacaoAnalise(){
   document.getElementById('card-reducao-percentual').textContent = reducaoPercentual.toFixed(1) + '%';
   document.getElementById('chart-reabastecimento-meta').textContent = linhaSelecionada ? 'movimentação selecionada' : 'totais do período';
 
+  const porCurvaDestino = {};
+  dadosParaCards.forEach(l => {
+    const curva = (l.curva_endereco_destino ?? '').toString().trim();
+    if (!curva) return;
+    porCurvaDestino[curva] = (porCurvaDestino[curva] || 0) + 1;
+  });
+  const totalComCurva = Object.values(porCurvaDestino).reduce((a, b) => a + b, 0);
+  document.getElementById('card-total-curva-destino').textContent = totalComCurva.toLocaleString('pt-BR');
+  document.getElementById('chart-curva-destino-meta').textContent = linhaSelecionada ? 'movimentação selecionada' : 'distribuição do período';
+
   renderChartReabastecimento(totalAnterior, totalEstimado);
+  renderChartCurvaDestino(porCurvaDestino);
 }
 
 function selecionarLinhaAnalise(id){
@@ -1264,6 +1323,53 @@ function renderChartReabastecimento(totalAnterior, totalEstimado){
   });
 }
 
+const CORES_CURVA_DESTINO = ['#5347EE', '#2CD9A6', '#FFB020', '#FF5C5C', '#3B2FBF', '#8B7CF6', '#0EA5A5', '#F472B6'];
+
+function renderChartCurvaDestino(porCurva){
+  const ctx = document.getElementById('chart-curva-destino');
+  if (chartCurvaDestino) chartCurvaDestino.destroy();
+
+  const curvas = Object.keys(porCurva).sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
+  const valores = curvas.map(c => porCurva[c]);
+
+  if (curvas.length === 0){
+    chartCurvaDestino = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels: ['Sem dados'], datasets: [{ data: [1], backgroundColor: ['#E7EAF6'] }] },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{enabled:false} } }
+    });
+    return;
+  }
+
+  chartCurvaDestino = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: curvas.map(c => `Curva ${c}`),
+      datasets: [{
+        data: valores,
+        backgroundColor: curvas.map((_, i) => CORES_CURVA_DESTINO[i % CORES_CURVA_DESTINO.length]),
+        borderColor: '#fff',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{ boxWidth:12, font:{ family:"'Inter', sans-serif", size:11.5 } } },
+        tooltip:{
+          callbacks:{
+            label: (item) => {
+              const total = valores.reduce((a,b)=>a+b, 0);
+              const pct = total > 0 ? ((item.raw / total) * 100).toFixed(1) : 0;
+              return `${item.label}: ${item.raw} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
 function renderTabelaAnalise(linhas){
   const body = document.getElementById('analise-tabela-body');
   const meta = document.getElementById('analise-tabela-meta');
@@ -1273,7 +1379,7 @@ function renderTabelaAnalise(linhas){
     : `${linhas.length} de ${totalOriginal} movimentações (filtrado)`;
 
   if (linhas.length === 0){
-    body.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="glyph">∅</div>Nenhuma movimentação encontrada.</div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="glyph">∅</div>Nenhuma movimentação encontrada.</div></td></tr>`;
     return;
   }
 
@@ -1285,6 +1391,9 @@ function renderTabelaAnalise(linhas){
       <td data-col="3">${l.qtd_reabast_anterior ?? 0}</td>
       <td data-col="4">${l.endereco_destino ?? ''}</td>
       <td data-col="5">${l.qtd_reabast_novo ?? 0}</td>
+      <td data-col="6">${l.curva_produto ?? ''}</td>
+      <td data-col="7">${l.curva_endereco ?? ''}</td>
+      <td data-col="8">${l.curva_endereco_destino ?? ''}</td>
     </tr>
   `).join('');
 }
@@ -1382,6 +1491,9 @@ const COLUNAS_ANALISE = [
   { idx: 3, label: 'Qtd. Reabast. Anterior' },
   { idx: 4, label: 'Endereço Destino' },
   { idx: 5, label: 'Qtd. Reabast. Novo Endereço' },
+  { idx: 6, label: 'Curva Produto' },
+  { idx: 7, label: 'Curva Endereço' },
+  { idx: 8, label: 'Curva Endereço Destino' },
 ];
 let colunasPainelAnaliseMontado = false;
 
@@ -1428,7 +1540,8 @@ async function carregarConfiguracoes(){
     if (error){ mostrarToast('Erro ao carregar configurações', true); console.error(error); return; }
     if (data && data.length){
       document.getElementById('cfg-periodicidade').value = data[0].periodicidade_reabastecimento_dias ?? '';
-      document.getElementById('cfg-limite').value = data[0].limite_alerta_reabastecimento ?? '';
+      document.getElementById('cfg-limite-6meses').value = data[0].limite_alerta_6meses ?? '';
+      document.getElementById('cfg-limite-1mes').value = data[0].limite_alerta_1mes ?? '';
     }
   }catch(e){
     console.error('Falha em carregarConfiguracoes', e);
@@ -1440,12 +1553,14 @@ async function salvarConfiguracoes(){
   if (!exigirSupabase()) return;
   const registro = {
     periodicidade_reabastecimento_dias: Number(document.getElementById('cfg-periodicidade').value || 7),
-    limite_alerta_reabastecimento: Number(document.getElementById('cfg-limite').value || 0),
+    limite_alerta_6meses: Number(document.getElementById('cfg-limite-6meses').value || 0),
+    limite_alerta_1mes: Number(document.getElementById('cfg-limite-1mes').value || 0),
     updated_at: new Date().toISOString()
   };
   const { error } = await sb.from('configuracoes').insert([registro]);
   if (error){ mostrarToast('Erro ao salvar configurações', true); console.error(error); return; }
-  cacheInvalidar('config_limite');
+  cacheInvalidar('config_limites');
+  await carregarCardsVisaoGeral(true);
   mostrarToast('Configurações salvas');
 }
 
@@ -1499,7 +1614,7 @@ function renderMovimentacoesSalvas(linhas){
   document.getElementById('mov-meta').textContent = `${linhas.length} registro(s)`;
 
   if (linhas.length === 0){
-    body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="glyph">∅</div>Nenhuma movimentação encontrada.</div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="glyph">∅</div>Nenhuma movimentação encontrada.</div></td></tr>`;
     return;
   }
 
@@ -1514,6 +1629,9 @@ function renderMovimentacoesSalvas(linhas){
           <td>${m.qtd_reabast_anterior ?? 0}</td>
           <td>${m.endereco_destino ?? ''}</td>
           <td>${m.qtd_reabast_novo ?? 0}</td>
+          <td>${m.curva_produto ?? ''}</td>
+          <td>${m.curva_endereco ?? ''}</td>
+          <td>${m.curva_endereco_destino ?? ''}</td>
           <td style="white-space:nowrap;">
             <button class="btn-ghost" style="padding:5px 10px;font-size:12px;" onclick="iniciarEdicaoMovimentacao(${m.id})">Editar</button>
             <button class="btn-ghost" style="padding:5px 10px;font-size:12px;color:var(--accent-red);" onclick="excluirMovimentacao(${m.id})">Excluir</button>
@@ -1528,6 +1646,9 @@ function renderMovimentacoesSalvas(linhas){
         <td><input type="number" id="edit-qtdant-${m.id}" value="${m.qtd_reabast_anterior ?? 0}" style="min-width:80px;"></td>
         <td><input type="text" id="edit-destino-${m.id}" value="${m.endereco_destino ?? ''}" style="min-width:120px;"></td>
         <td><input type="number" id="edit-qtdnovo-${m.id}" value="${m.qtd_reabast_novo ?? 0}" style="min-width:80px;"></td>
+        <td><input type="text" id="edit-curvaproduto-${m.id}" value="${m.curva_produto ?? ''}" style="min-width:110px;"></td>
+        <td><input type="text" id="edit-curvaendereco-${m.id}" value="${m.curva_endereco ?? ''}" style="min-width:110px;"></td>
+        <td><input type="text" id="edit-curvaenderecodestino-${m.id}" value="${m.curva_endereco_destino ?? ''}" style="min-width:110px;"></td>
         <td style="white-space:nowrap;">
           <button class="btn-primary" style="padding:5px 10px;font-size:12px;" onclick="salvarEdicaoMovimentacao(${m.id})">Salvar</button>
           <button class="btn-ghost" style="padding:5px 10px;font-size:12px;" onclick="cancelarEdicaoMovimentacao()">Cancelar</button>
@@ -1555,6 +1676,9 @@ async function salvarEdicaoMovimentacao(id){
     qtd_reabast_anterior: Number(document.getElementById(`edit-qtdant-${id}`).value || 0),
     endereco_destino: document.getElementById(`edit-destino-${id}`).value,
     qtd_reabast_novo: Number(document.getElementById(`edit-qtdnovo-${id}`).value || 0),
+    curva_produto: document.getElementById(`edit-curvaproduto-${id}`).value,
+    curva_endereco: document.getElementById(`edit-curvaendereco-${id}`).value,
+    curva_endereco_destino: document.getElementById(`edit-curvaenderecodestino-${id}`).value,
   };
 
   const { error } = await sb.from('movimentacoes_formulario').update(atualizacao).eq('id', id);
@@ -1734,60 +1858,174 @@ checarConexao();
 carregarCardsVisaoGeral();
 
 /* ==========================================================================
-SQL — rode no SQL Editor do Supabase antes do primeiro uso:
+SQL — script único e idempotente. Rode o arquivo setup_supabase.sql inteiro
+no SQL Editor do Supabase (cria tudo do zero OU atualiza um banco que já
+tenha essas tabelas, sem apagar dados — todo comando usa IF NOT EXISTS).
 
-CREATE TABLE inventario_6meses (
-  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  cod_end NUMERIC, endereco TEXT, area_separacao NUMERIC,
-  giro_end TEXT, giro_produto TEXT, qtd_reabastecimento NUMERIC DEFAULT 0,
-  sku TEXT, descricao TEXT, mes TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
+-- ============================================================================
+-- SETUP COMPLETO — Dashboard Curva ABC & Reabastecimento (Anhanguera)
+-- Rode este arquivo inteiro no SQL Editor do Supabase.
+-- É seguro rodar mais de uma vez: todo comando usa IF NOT EXISTS, então
+-- funciona tanto num projeto novo quanto para atualizar um banco que já
+-- tem essas tabelas (nada é apagado, nenhum dado é perdido).
+-- ============================================================================
+
+
+-- ============================================================================
+-- 1. TABELAS
+-- ============================================================================
+
+-- Base de picking dos últimos 6 meses (substituída inteira a cada importação)
+CREATE TABLE IF NOT EXISTS inventario_6meses (
+  id                  BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  cod_end             NUMERIC,
+  endereco            TEXT,
+  area_separacao      NUMERIC,
+  giro_end            TEXT,
+  giro_produto        TEXT,
+  qtd_reabastecimento NUMERIC DEFAULT 0,
+  sku                 TEXT,
+  descricao           TEXT,
+  mes                 TEXT,
+  created_at          TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
 );
 
-CREATE TABLE inventario_1mes (
-  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  cod_end NUMERIC, endereco TEXT, area_separacao NUMERIC,
-  giro_end TEXT, giro_produto TEXT, qtd_reabastecimento NUMERIC DEFAULT 0,
-  sku TEXT, descricao TEXT, mes TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
+-- Base de picking do mês corrente (acumula por mês — reenviar um mês
+-- substitui só os registros daquele mês, mantendo os demais)
+CREATE TABLE IF NOT EXISTS inventario_1mes (
+  id                  BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  cod_end             NUMERIC,
+  endereco            TEXT,
+  area_separacao      NUMERIC,
+  giro_end            TEXT,
+  giro_produto        TEXT,
+  qtd_reabastecimento NUMERIC DEFAULT 0,
+  sku                 TEXT,
+  descricao           TEXT,
+  mes                 TEXT,
+  created_at          TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
 );
 
-CREATE TABLE movimentacoes_formulario (
-  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  dt_movimentacao DATE NOT NULL, sku TEXT NOT NULL,
-  endereco_origem TEXT NOT NULL, qtd_reabast_anterior NUMERIC DEFAULT 0,
-  endereco_destino TEXT NOT NULL, qtd_reabast_novo NUMERIC DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
+-- Movimentações registradas pelo Formulário (manual ou pré-preenchido)
+CREATE TABLE IF NOT EXISTS movimentacoes_formulario (
+  id                     BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  dt_movimentacao        DATE NOT NULL,
+  sku                    TEXT NOT NULL,
+  endereco_origem        TEXT NOT NULL,
+  qtd_reabast_anterior   NUMERIC DEFAULT 0,
+  endereco_destino       TEXT NOT NULL,
+  qtd_reabast_novo       NUMERIC DEFAULT 0,
+  curva_produto          TEXT,
+  curva_endereco         TEXT,
+  curva_endereco_destino TEXT,
+  created_at             TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
 );
 
-CREATE TABLE configuracoes (
-  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  periodicidade_reabastecimento_dias INTEGER DEFAULT 7,
-  limite_alerta_reabastecimento INTEGER DEFAULT 0,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
+-- Parâmetros do sistema (sempre lida a linha mais recente por id)
+CREATE TABLE IF NOT EXISTS configuracoes (
+  id                                  BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  periodicidade_reabastecimento_dias  INTEGER DEFAULT 7,
+  limite_alerta_6meses                INTEGER DEFAULT 0,
+  limite_alerta_1mes                  INTEGER DEFAULT 0,
+  updated_at                          TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
 );
 
-CREATE INDEX idx_inv6m_sku ON inventario_6meses(sku);
-CREATE INDEX idx_inv6m_area ON inventario_6meses(area_separacao);
-CREATE INDEX idx_inv6m_reabast ON inventario_6meses(qtd_reabastecimento);
-CREATE INDEX idx_inv6m_mes ON inventario_6meses(mes);
-CREATE INDEX idx_inv1m_sku ON inventario_1mes(sku);
-CREATE INDEX idx_inv1m_area ON inventario_1mes(area_separacao);
-CREATE INDEX idx_inv1m_reabast ON inventario_1mes(qtd_reabastecimento);
-CREATE INDEX idx_inv1m_mes ON inventario_1mes(mes);
-CREATE INDEX idx_mov_dt ON movimentacoes_formulario(dt_movimentacao);
 
--- Lembre de habilitar RLS + policies (ou desabilitar RLS) conforme o
--- padrão que você já usa nos outros dashboards do CD.
+-- ============================================================================
+-- 2. COLUNAS DE ATUALIZAÇÕES (garante que bancos criados em versões
+--    anteriores do dashboard fiquem com o esquema completo, sem perder dados)
+-- ============================================================================
 
--- ========================================================================
--- SE AS TABELAS JÁ EXISTEM (base já em uso antes deste recurso):
--- rode só este bloco para adicionar a coluna "mes" sem perder dados.
--- ========================================================================
-ALTER TABLE inventario_6meses ADD COLUMN IF NOT EXISTS mes TEXT;
-ALTER TABLE inventario_1mes ADD COLUMN IF NOT EXISTS mes TEXT;
-CREATE INDEX IF NOT EXISTS idx_inv6m_mes ON inventario_6meses(mes);
-CREATE INDEX IF NOT EXISTS idx_inv1m_mes ON inventario_1mes(mes);
+ALTER TABLE inventario_6meses        ADD COLUMN IF NOT EXISTS mes TEXT;
+ALTER TABLE inventario_1mes          ADD COLUMN IF NOT EXISTS mes TEXT;
+
+ALTER TABLE movimentacoes_formulario ADD COLUMN IF NOT EXISTS curva_produto TEXT;
+ALTER TABLE movimentacoes_formulario ADD COLUMN IF NOT EXISTS curva_endereco TEXT;
+ALTER TABLE movimentacoes_formulario ADD COLUMN IF NOT EXISTS curva_endereco_destino TEXT;
+
+ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS limite_alerta_6meses INTEGER DEFAULT 0;
+ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS limite_alerta_1mes INTEGER DEFAULT 0;
+
+-- Se a tabela "configuracoes" ainda tiver a coluna antiga
+-- "limite_alerta_reabastecimento" (versão com limite único), copia o valor
+-- dela como ponto de partida para os dois limites novos.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'configuracoes' AND column_name = 'limite_alerta_reabastecimento'
+  ) THEN
+    UPDATE configuracoes
+      SET limite_alerta_6meses = COALESCE(limite_alerta_6meses, limite_alerta_reabastecimento, 0),
+          limite_alerta_1mes   = COALESCE(limite_alerta_1mes, limite_alerta_reabastecimento, 0)
+      WHERE limite_alerta_reabastecimento IS NOT NULL;
+  END IF;
+END $$;
+
+
+-- ============================================================================
+-- 3. ÍNDICES (aceleram os filtros e agrupamentos usados no dashboard)
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_inv6m_sku      ON inventario_6meses(sku);
+CREATE INDEX IF NOT EXISTS idx_inv6m_area     ON inventario_6meses(area_separacao);
+CREATE INDEX IF NOT EXISTS idx_inv6m_reabast  ON inventario_6meses(qtd_reabastecimento);
+CREATE INDEX IF NOT EXISTS idx_inv6m_mes      ON inventario_6meses(mes);
+
+CREATE INDEX IF NOT EXISTS idx_inv1m_sku      ON inventario_1mes(sku);
+CREATE INDEX IF NOT EXISTS idx_inv1m_area     ON inventario_1mes(area_separacao);
+CREATE INDEX IF NOT EXISTS idx_inv1m_reabast  ON inventario_1mes(qtd_reabastecimento);
+CREATE INDEX IF NOT EXISTS idx_inv1m_mes      ON inventario_1mes(mes);
+
+CREATE INDEX IF NOT EXISTS idx_mov_dt         ON movimentacoes_formulario(dt_movimentacao);
+CREATE INDEX IF NOT EXISTS idx_mov_sku        ON movimentacoes_formulario(sku);
+CREATE INDEX IF NOT EXISTS idx_mov_curva_dest ON movimentacoes_formulario(curva_endereco_destino);
+
+
+-- ============================================================================
+-- 4. ROW LEVEL SECURITY
+-- Este dashboard roda 100% no navegador com a chave "anon" (não há login de
+-- usuário). Para as importações, o formulário e as edições funcionarem, a
+-- chave anon precisa de acesso total (select/insert/update/delete) às 4
+-- tabelas. Isso deixa os dados abertos a qualquer pessoa que tenha a URL +
+-- chave anon do projeto (visíveis no código-fonte do index.html) — aceitável
+-- para uso interno na rede da empresa; se o arquivo puder circular fora
+-- disso, considere adicionar autenticação real do Supabase no futuro.
+-- ============================================================================
+
+ALTER TABLE inventario_6meses        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inventario_1mes          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE movimentacoes_formulario ENABLE ROW LEVEL SECURITY;
+ALTER TABLE configuracoes            ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "anon full access" ON inventario_6meses;
+CREATE POLICY "anon full access" ON inventario_6meses
+  FOR ALL TO anon USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon full access" ON inventario_1mes;
+CREATE POLICY "anon full access" ON inventario_1mes
+  FOR ALL TO anon USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon full access" ON movimentacoes_formulario;
+CREATE POLICY "anon full access" ON movimentacoes_formulario
+  FOR ALL TO anon USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon full access" ON configuracoes;
+CREATE POLICY "anon full access" ON configuracoes
+  FOR ALL TO anon USING (true) WITH CHECK (true);
+
+
+-- ============================================================================
+-- 5. LINHA INICIAL DE CONFIGURAÇÃO (só cria se a tabela estiver vazia)
+-- ============================================================================
+
+INSERT INTO configuracoes (periodicidade_reabastecimento_dias, limite_alerta_6meses, limite_alerta_1mes)
+SELECT 7, 0, 0
+WHERE NOT EXISTS (SELECT 1 FROM configuracoes);
+
+-- ============================================================================
+-- FIM — pronto para colar a URL e a chave anon do projeto no index.html
+-- ============================================================================
 ========================================================================== */
 </script>
 </body>
