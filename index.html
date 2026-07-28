@@ -140,6 +140,7 @@
   .btn-primary:hover{background:var(--secondary-color);}
   .btn-ghost{background:#fff;color:var(--text-color);border:1.5px solid #DDE1F0;}
   .btn-ghost:hover{background:#EEF0FF;border-color:var(--accent-color);color:var(--accent-color);}
+  .btn-ghost:disabled{opacity:.45;cursor:not-allowed;background:#fff;border-color:#DDE1F0;color:var(--text-color);}
   .btn-amber{background:var(--accent-amber);color:#fff;}
   .btn-amber:hover{filter:brightness(1.06);}
 
@@ -206,6 +207,15 @@
       </div>
 
       <div class="browser-tabs-panel">
+        <div class="filter-row" style="margin-bottom:18px;">
+          <div class="field" style="flex:1;min-width:220px;">
+            <label>Buscar produto ou endereço</label>
+            <input type="text" id="visao-busca" placeholder="SKU, descrição ou endereço…" style="width:100%;" onkeydown="if(event.key==='Enter') buscarVisaoGeral();">
+          </div>
+          <button class="btn-primary" onclick="buscarVisaoGeral()">🔎 Buscar</button>
+          <button class="btn-ghost" onclick="limparBuscaVisaoGeral()">Limpar</button>
+        </div>
+
         <div id="visao-mes-seletor" style="display:none;margin-bottom:18px;">
           <span class="meta" style="margin-right:10px;">Mês importado:</span>
           <span id="visao-mes-chips" style="display:inline-flex;gap:8px;flex-wrap:wrap;"></span>
@@ -266,6 +276,7 @@
             <tbody id="tabela-body"></tbody>
           </table>
         </div>
+        <div id="tabela-paginacao" style="display:flex;align-items:center;justify-content:flex-end;margin-top:12px;"></div>
         <p style="font-size:11.5px;color:var(--ink-soft);margin:12px 2px 0 2px;">Clique em uma linha para abrir o formulário já preenchido com SKU, endereço de origem e a data de hoje.</p>
       </div>
       </div>
@@ -391,6 +402,7 @@
             <tbody id="analise-tabela-body"></tbody>
           </table>
         </div>
+        <div id="analise-tabela-paginacao" style="display:flex;align-items:center;justify-content:flex-end;margin-top:12px;"></div>
         <p style="font-size:11.5px;color:var(--ink-soft);margin:12px 2px 0 2px;">Clique em uma linha para ver os cards e o gráfico apenas com aquela movimentação. Clique de novo para sair do modo de filtro.</p>
       </div>
 
@@ -982,6 +994,39 @@ async function filtrarPorGiro(giro){
   renderTabelaVisaoGeral(data, `Endereços com Giro do Produto ${giro}`);
 }
 
+/* Busca livre por SKU, descrição ou endereço — independente dos cards de
+   alerta/área/giro: não exige estar acima do limite nem pertencer a
+   nenhuma categoria específica, então encontra registros que os outros
+   filtros não mostrariam. Funciona nas duas abas (6 meses e 1 mês). */
+async function buscarVisaoGeral(){
+  if (!exigirSupabase()) return;
+  const termo = document.getElementById('visao-busca').value.trim().toLowerCase();
+  if (!termo){ mostrarToast('Digite algo para buscar', true); return; }
+
+  let bases;
+  try{
+    bases = await precarregarBasesVisaoGeral();
+  }catch(error){
+    mostrarToast('Erro ao buscar', true); console.error(error); return;
+  }
+
+  const data = registrosVisaoGeralAtuais(bases)
+    .filter(r => {
+      const sku = (r.sku ?? '').toString().toLowerCase();
+      const descricao = (r.descricao ?? '').toString().toLowerCase();
+      const endereco = (r.endereco ?? '').toString().toLowerCase();
+      return sku.includes(termo) || descricao.includes(termo) || endereco.includes(termo);
+    })
+    .sort((a,b) => String(a.endereco ?? '').localeCompare(String(b.endereco ?? ''), 'pt-BR', {numeric:true}));
+
+  renderTabelaVisaoGeral(data, `Resultado da busca por "${document.getElementById('visao-busca').value.trim()}"`);
+}
+
+function limparBuscaVisaoGeral(){
+  document.getElementById('visao-busca').value = '';
+  document.getElementById('tabela-panel').style.display = 'none';
+}
+
 async function filtrarPorCard(tipo){
   if (!exigirSupabase()) return;
   ultimoFiltroCard = { tipo };
@@ -1032,6 +1077,23 @@ let ordenacaoVisaoGeral = { col: null, dir: null };
 let colunaFiltroAtual = null;
 let valoresTempSelecionados = new Set();
 
+/* ---------------------------- Paginação da tabela (evita travar o navegador
+   renderizando milhares de linhas de uma vez no DOM) ---------------------------- */
+const ITENS_POR_PAGINA = 150;
+let paginaAtualVisaoGeral = 1;
+let dadosFiltradosVisaoGeralAtual = [];
+
+function renderControlesPaginacao(containerId, paginaAtual, totalPaginas, nomeFuncaoCallback){
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (totalPaginas <= 1){ el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" ${paginaAtual <= 1 ? 'disabled' : ''} onclick="${nomeFuncaoCallback}(${paginaAtual - 1})">‹ Anterior</button>
+    <span style="font-size:12.5px;color:var(--ink-soft);margin:0 4px;">Página ${paginaAtual} de ${totalPaginas}</span>
+    <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" ${paginaAtual >= totalPaginas ? 'disabled' : ''} onclick="${nomeFuncaoCallback}(${paginaAtual + 1})">Próxima ›</button>
+  `;
+}
+
 function valorColunaVisaoGeral(linha, idx){
   const v = linha[COL_PROP_VISAO_GERAL[idx]];
   return v === null || v === undefined ? '' : v;
@@ -1044,13 +1106,16 @@ function renderTabelaVisaoGeral(linhas, titulo){
   tabelaVisaoGeralTitulo = titulo;
   filtrosColunaVisaoGeral = {};
   ordenacaoVisaoGeral = { col: null, dir: null };
+  paginaAtualVisaoGeral = 1;
   aplicarFiltrosOrdenacaoVisaoGeral();
 }
 
+/* Recalcula filtro/ordenação sobre o array completo (isso é rápido — é O(n)
+   simples). O que pesava e travava o navegador era jogar TODAS as linhas
+   resultantes no DOM de uma vez; agora só a página atual (ITENS_POR_PAGINA)
+   é renderizada em HTML. */
 function aplicarFiltrosOrdenacaoVisaoGeral(){
   const tituloEl = document.getElementById('tabela-titulo');
-  const meta = document.getElementById('tabela-meta');
-  const body = document.getElementById('tabela-body');
   tituloEl.textContent = tabelaVisaoGeralTitulo;
 
   let dados = tabelaVisaoGeralDados.slice();
@@ -1076,15 +1141,32 @@ function aplicarFiltrosOrdenacaoVisaoGeral(){
     });
   }
 
-  const totalOriginal = tabelaVisaoGeralDados.length;
-  meta.textContent = dados.length === totalOriginal
-    ? `${dados.length} endereços`
-    : `${dados.length} de ${totalOriginal} endereços (filtrado)`;
+  dadosFiltradosVisaoGeralAtual = dados;
+  paginaAtualVisaoGeral = 1;
+  renderPaginaTabelaVisaoGeral();
+  atualizarIndicadoresCabecalhoVisaoGeral();
+}
 
-  if (dados.length === 0){
+function renderPaginaTabelaVisaoGeral(){
+  const meta = document.getElementById('tabela-meta');
+  const body = document.getElementById('tabela-body');
+  const dados = dadosFiltradosVisaoGeralAtual;
+  const totalOriginal = tabelaVisaoGeralDados.length;
+  const totalFiltrado = dados.length;
+  const totalPaginas = Math.max(1, Math.ceil(totalFiltrado / ITENS_POR_PAGINA));
+  if (paginaAtualVisaoGeral > totalPaginas) paginaAtualVisaoGeral = totalPaginas;
+  if (paginaAtualVisaoGeral < 1) paginaAtualVisaoGeral = 1;
+
+  meta.textContent = totalFiltrado === totalOriginal
+    ? `${totalFiltrado} endereços`
+    : `${totalFiltrado} de ${totalOriginal} endereços (filtrado)`;
+
+  if (totalFiltrado === 0){
     body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="glyph">∅</div>Nenhum endereço encontrado com os filtros atuais.</div></td></tr>`;
   } else {
-    body.innerHTML = dados.map(l => `
+    const inicio = (paginaAtualVisaoGeral - 1) * ITENS_POR_PAGINA;
+    const paginaDados = dados.slice(inicio, inicio + ITENS_POR_PAGINA);
+    body.innerHTML = paginaDados.map(l => `
       <tr onclick="selecionarLinhaParaFormulario('${(l.sku||'').replace(/'/g,"")}', '${(l.endereco||'').replace(/'/g,"")}', ${Number(l.qtd_reabastecimento ?? 0)}, '${(l.giro_produto||'').replace(/'/g,"")}', '${(l.giro_end||'').replace(/'/g,"")}')">
         <td data-col="0">${l.sku ?? ''}</td>
         <td data-col="1">${l.endereco ?? ''}</td>
@@ -1097,7 +1179,12 @@ function aplicarFiltrosOrdenacaoVisaoGeral(){
     `).join('');
   }
 
-  atualizarIndicadoresCabecalhoVisaoGeral();
+  renderControlesPaginacao('tabela-paginacao', paginaAtualVisaoGeral, totalPaginas, 'mudarPaginaVisaoGeral');
+}
+
+function mudarPaginaVisaoGeral(novaPagina){
+  paginaAtualVisaoGeral = novaPagina;
+  renderPaginaTabelaVisaoGeral();
 }
 
 function atualizarIndicadoresCabecalhoVisaoGeral(){
@@ -1258,6 +1345,8 @@ let ordenacaoAnalise = { col: null, dir: null };
 let analiseLinhaSelecionadaId = null;
 let colunaFiltroAtualAnalise = null;
 let valoresTempSelecionadosAnalise = new Set();
+let paginaAtualAnalise = 1;
+let dadosFiltradosAnaliseAtual = [];
 
 function valorColunaAnalise(linha, idx){
   const v = linha[COL_PROP_ANALISE[idx]];
@@ -1294,7 +1383,7 @@ async function carregarAnalise(forcar){
   aplicarFiltrosOrdenacaoAnalise();
 }
 
-function aplicarFiltrosOrdenacaoAnalise(){
+function aplicarFiltrosOrdenacaoAnalise(manterPagina){
   let dados = analiseLinhasCache.slice();
 
   Object.keys(filtrosColunaAnalise).forEach(idxStr => {
@@ -1318,7 +1407,9 @@ function aplicarFiltrosOrdenacaoAnalise(){
     });
   }
 
-  renderTabelaAnalise(dados);
+  dadosFiltradosAnaliseAtual = dados;
+  if (!manterPagina) paginaAtualAnalise = 1;
+  renderPaginaTabelaAnalise();
   atualizarIndicadoresCabecalhoAnalise();
 
   const banner = document.getElementById('analise-selecao-banner');
@@ -1358,12 +1449,12 @@ function aplicarFiltrosOrdenacaoAnalise(){
 
 function selecionarLinhaAnalise(id){
   analiseLinhaSelecionadaId = (analiseLinhaSelecionadaId === id) ? null : id;
-  aplicarFiltrosOrdenacaoAnalise();
+  aplicarFiltrosOrdenacaoAnalise(true);
 }
 
 function limparSelecaoAnalise(){
   analiseLinhaSelecionadaId = null;
-  aplicarFiltrosOrdenacaoAnalise();
+  aplicarFiltrosOrdenacaoAnalise(true);
 }
 
 function renderChartReabastecimento(totalAnterior, totalEstimado){
@@ -1435,32 +1526,46 @@ function renderChartCurvaDestino(porCurva){
   });
 }
 
-function renderTabelaAnalise(linhas){
+function renderPaginaTabelaAnalise(){
   const body = document.getElementById('analise-tabela-body');
   const meta = document.getElementById('analise-tabela-meta');
+  const dados = dadosFiltradosAnaliseAtual;
   const totalOriginal = analiseLinhasCache.length;
-  meta.textContent = linhas.length === totalOriginal
-    ? `${linhas.length} movimentações`
-    : `${linhas.length} de ${totalOriginal} movimentações (filtrado)`;
+  const totalFiltrado = dados.length;
+  const totalPaginas = Math.max(1, Math.ceil(totalFiltrado / ITENS_POR_PAGINA));
+  if (paginaAtualAnalise > totalPaginas) paginaAtualAnalise = totalPaginas;
+  if (paginaAtualAnalise < 1) paginaAtualAnalise = 1;
 
-  if (linhas.length === 0){
+  meta.textContent = totalFiltrado === totalOriginal
+    ? `${totalFiltrado} movimentações`
+    : `${totalFiltrado} de ${totalOriginal} movimentações (filtrado)`;
+
+  if (totalFiltrado === 0){
     body.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="glyph">∅</div>Nenhuma movimentação encontrada.</div></td></tr>`;
-    return;
+  } else {
+    const inicio = (paginaAtualAnalise - 1) * ITENS_POR_PAGINA;
+    const paginaDados = dados.slice(inicio, inicio + ITENS_POR_PAGINA);
+    body.innerHTML = paginaDados.map(l => `
+      <tr class="${l.id === analiseLinhaSelecionadaId ? 'linha-selecionada' : ''}" onclick="selecionarLinhaAnalise(${l.id})">
+        <td data-col="0">${l.dt_movimentacao ?? ''}</td>
+        <td data-col="1">${l.sku ?? ''}</td>
+        <td data-col="2">${l.endereco_origem ?? ''}</td>
+        <td data-col="3">${l.qtd_reabast_anterior ?? 0}</td>
+        <td data-col="4">${l.endereco_destino ?? ''}</td>
+        <td data-col="5">${l.qtd_reabast_novo ?? 0}</td>
+        <td data-col="6">${l.curva_produto ?? ''}</td>
+        <td data-col="7">${l.curva_endereco ?? ''}</td>
+        <td data-col="8">${l.curva_endereco_destino ?? ''}</td>
+      </tr>
+    `).join('');
   }
 
-  body.innerHTML = linhas.map(l => `
-    <tr class="${l.id === analiseLinhaSelecionadaId ? 'linha-selecionada' : ''}" onclick="selecionarLinhaAnalise(${l.id})">
-      <td data-col="0">${l.dt_movimentacao ?? ''}</td>
-      <td data-col="1">${l.sku ?? ''}</td>
-      <td data-col="2">${l.endereco_origem ?? ''}</td>
-      <td data-col="3">${l.qtd_reabast_anterior ?? 0}</td>
-      <td data-col="4">${l.endereco_destino ?? ''}</td>
-      <td data-col="5">${l.qtd_reabast_novo ?? 0}</td>
-      <td data-col="6">${l.curva_produto ?? ''}</td>
-      <td data-col="7">${l.curva_endereco ?? ''}</td>
-      <td data-col="8">${l.curva_endereco_destino ?? ''}</td>
-    </tr>
-  `).join('');
+  renderControlesPaginacao('analise-tabela-paginacao', paginaAtualAnalise, totalPaginas, 'mudarPaginaAnalise');
+}
+
+function mudarPaginaAnalise(novaPagina){
+  paginaAtualAnalise = novaPagina;
+  renderPaginaTabelaAnalise();
 }
 
 function atualizarIndicadoresCabecalhoAnalise(){
