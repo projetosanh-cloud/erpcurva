@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Curva ABC & Reabastecimento · Anhanguera Matriz</title>
+<title>Curva ABC & Reabastecimento · Anhanguera</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -140,7 +140,6 @@
   .btn-primary:hover{background:var(--secondary-color);}
   .btn-ghost{background:#fff;color:var(--text-color);border:1.5px solid #DDE1F0;}
   .btn-ghost:hover{background:#EEF0FF;border-color:var(--accent-color);color:var(--accent-color);}
-  .btn-ghost:disabled{opacity:.45;cursor:not-allowed;background:#fff;border-color:#DDE1F0;color:var(--text-color);}
   .btn-amber{background:var(--accent-amber);color:#fff;}
   .btn-amber:hover{filter:brightness(1.06);}
 
@@ -175,7 +174,7 @@
 <div class="shell">
   <aside class="sidebar">
     <div class="brand">
-      <span class="tag">Anhanguera · Matriz</span>
+      <span class="tag">Anhanguera · CD</span>
       <h1>Curva ABC &amp;<br>Reabastecimento</h1>
     </div>
     <div class="nav-item active" data-view="visao"><span class="num">01</span> Visão Geral</div>
@@ -276,7 +275,6 @@
             <tbody id="tabela-body"></tbody>
           </table>
         </div>
-        <div id="tabela-paginacao" style="display:flex;align-items:center;justify-content:flex-end;margin-top:12px;"></div>
         <p style="font-size:11.5px;color:var(--ink-soft);margin:12px 2px 0 2px;">Clique em uma linha para abrir o formulário já preenchido com SKU, endereço de origem e a data de hoje.</p>
       </div>
       </div>
@@ -360,6 +358,16 @@
           <div class="kpi-value" id="card-total-curva-destino">–</div>
           <div class="kpi-sub">soma das movimentações com Curva do Endereço de Destino preenchida</div>
         </div>
+        <div class="kpi" style="border-left-color:var(--accent-red);">
+          <div class="kpi-label">Alocação diferente</div>
+          <div class="kpi-value" id="card-alocacao-diferente">–</div>
+          <div class="kpi-sub" id="card-alocacao-diferente-sub">giro do item ≠ giro do endereço</div>
+        </div>
+        <div class="kpi teal">
+          <div class="kpi-label">Alocação adequada</div>
+          <div class="kpi-value" id="card-alocacao-adequada">–</div>
+          <div class="kpi-sub" id="card-alocacao-adequada-sub">giro do item = giro do endereço</div>
+        </div>
       </div>
 
       <div class="charts-row">
@@ -402,18 +410,18 @@
             <tbody id="analise-tabela-body"></tbody>
           </table>
         </div>
-        <div id="analise-tabela-paginacao" style="display:flex;align-items:center;justify-content:flex-end;margin-top:12px;"></div>
         <p style="font-size:11.5px;color:var(--ink-soft);margin:12px 2px 0 2px;">Clique em uma linha para ver os cards e o gráfico apenas com aquela movimentação. Clique de novo para sair do modo de filtro.</p>
       </div>
 
       <div id="filtro-coluna-painel-analise" style="display:none;position:fixed;background:#fff;border:1px solid #E7EAF6;border-radius:10px;box-shadow:var(--shadow-card);padding:12px;z-index:30;width:230px;">
         <button class="btn-ghost" style="width:100%;justify-content:flex-start;text-align:left;padding:7px 9px;font-size:12.5px;margin-bottom:4px;" onclick="ordenarColunaAtualAnalise('asc')">↑ Classificar crescente</button>
         <button class="btn-ghost" style="width:100%;justify-content:flex-start;text-align:left;padding:7px 9px;font-size:12.5px;" onclick="ordenarColunaAtualAnalise('desc')">↓ Classificar decrescente</button>
-        <input type="text" placeholder="Buscar valor…" id="filtro-coluna-busca-analise" oninput="filtrarListaValoresColunaAnalise()" style="width:100%;margin:8px 0 6px 0;">
+        <input type="text" placeholder="Buscar valor… (Enter aplica)" id="filtro-coluna-busca-analise" oninput="filtrarListaValoresColunaAnalise()" onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarFiltroColunaAtualAnalise();}" style="width:100%;margin:8px 0 6px 0;">
         <label class="col-check-row" style="border-bottom:1px solid var(--bg-color);padding-bottom:6px;margin-bottom:4px;">
           <input type="checkbox" id="filtro-coluna-todos-analise" onchange="alternarTodosValoresColunaAnalise(this.checked)"> <strong>Selecionar tudo</strong>
         </label>
         <div id="filtro-coluna-lista-analise" style="max-height:160px;overflow:auto;"></div>
+        <div id="filtro-coluna-contador-analise" style="font-size:11px;color:var(--ink-soft);margin-top:6px;"></div>
         <div style="display:flex;gap:8px;margin-top:10px;">
           <button class="btn-primary" style="flex:1;padding:7px;font-size:12px;" onclick="aplicarFiltroColunaAtualAnalise()">OK</button>
           <button class="btn-ghost" style="flex:1;padding:7px;font-size:12px;" onclick="limparFiltroColunaAtualAnalise()">Limpar</button>
@@ -761,6 +769,7 @@ function selecionarAbaBase(tabela){
   document.getElementById('tab-base-6meses').classList.toggle('active', tabela === 'inventario_6meses');
   document.getElementById('tab-base-1mes').classList.toggle('active', tabela === 'inventario_1mes');
   document.getElementById('tabela-panel').style.display = 'none';
+  document.getElementById('visao-busca').value = '';
   ultimoFiltroCard = null;
   ultimoFiltroGiro = null;
   document.getElementById('card-alerta').classList.remove('selected');
@@ -848,6 +857,7 @@ function atualizarSeletorMes(dados1Mes){
 function selecionarMes1Mes(mes){
   mesSelecionado1Mes = mes;
   document.getElementById('tabela-panel').style.display = 'none';
+  document.getElementById('visao-busca').value = '';
   ultimoFiltroCard = null;
   ultimoFiltroGiro = null;
   document.getElementById('card-alerta').classList.remove('selected');
@@ -995,12 +1005,13 @@ async function filtrarPorGiro(giro){
 }
 
 /* Busca livre por SKU, descrição ou endereço — independente dos cards de
-   alerta/área/giro: não exige estar acima do limite nem pertencer a
-   nenhuma categoria específica, então encontra registros que os outros
-   filtros não mostrariam. Funciona nas duas abas (6 meses e 1 mês). */
+   alerta/área/giro: não exige estar acima do limite nem pertencer a nenhuma
+   categoria, então encontra registros que os outros filtros não mostram.
+   Vale para a aba de 6 meses e para a de 1 mês (mês selecionado). */
 async function buscarVisaoGeral(){
   if (!exigirSupabase()) return;
-  const termo = document.getElementById('visao-busca').value.trim().toLowerCase();
+  const termoOriginal = document.getElementById('visao-busca').value.trim();
+  const termo = termoOriginal.toLowerCase();
   if (!termo){ mostrarToast('Digite algo para buscar', true); return; }
 
   let bases;
@@ -1011,15 +1022,14 @@ async function buscarVisaoGeral(){
   }
 
   const data = registrosVisaoGeralAtuais(bases)
-    .filter(r => {
-      const sku = (r.sku ?? '').toString().toLowerCase();
-      const descricao = (r.descricao ?? '').toString().toLowerCase();
-      const endereco = (r.endereco ?? '').toString().toLowerCase();
-      return sku.includes(termo) || descricao.includes(termo) || endereco.includes(termo);
-    })
+    .filter(r =>
+      (r.sku ?? '').toString().toLowerCase().includes(termo) ||
+      (r.descricao ?? '').toString().toLowerCase().includes(termo) ||
+      (r.endereco ?? '').toString().toLowerCase().includes(termo)
+    )
     .sort((a,b) => String(a.endereco ?? '').localeCompare(String(b.endereco ?? ''), 'pt-BR', {numeric:true}));
 
-  renderTabelaVisaoGeral(data, `Resultado da busca por "${document.getElementById('visao-busca').value.trim()}"`);
+  renderTabelaVisaoGeral(data, `Resultado da busca por "${termoOriginal}" — ${rotuloBaseVisaoGeral()}`);
 }
 
 function limparBuscaVisaoGeral(){
@@ -1077,23 +1087,6 @@ let ordenacaoVisaoGeral = { col: null, dir: null };
 let colunaFiltroAtual = null;
 let valoresTempSelecionados = new Set();
 
-/* ---------------------------- Paginação da tabela (evita travar o navegador
-   renderizando milhares de linhas de uma vez no DOM) ---------------------------- */
-const ITENS_POR_PAGINA = 150;
-let paginaAtualVisaoGeral = 1;
-let dadosFiltradosVisaoGeralAtual = [];
-
-function renderControlesPaginacao(containerId, paginaAtual, totalPaginas, nomeFuncaoCallback){
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  if (totalPaginas <= 1){ el.innerHTML = ''; return; }
-  el.innerHTML = `
-    <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" ${paginaAtual <= 1 ? 'disabled' : ''} onclick="${nomeFuncaoCallback}(${paginaAtual - 1})">‹ Anterior</button>
-    <span style="font-size:12.5px;color:var(--ink-soft);margin:0 4px;">Página ${paginaAtual} de ${totalPaginas}</span>
-    <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" ${paginaAtual >= totalPaginas ? 'disabled' : ''} onclick="${nomeFuncaoCallback}(${paginaAtual + 1})">Próxima ›</button>
-  `;
-}
-
 function valorColunaVisaoGeral(linha, idx){
   const v = linha[COL_PROP_VISAO_GERAL[idx]];
   return v === null || v === undefined ? '' : v;
@@ -1106,16 +1099,13 @@ function renderTabelaVisaoGeral(linhas, titulo){
   tabelaVisaoGeralTitulo = titulo;
   filtrosColunaVisaoGeral = {};
   ordenacaoVisaoGeral = { col: null, dir: null };
-  paginaAtualVisaoGeral = 1;
   aplicarFiltrosOrdenacaoVisaoGeral();
 }
 
-/* Recalcula filtro/ordenação sobre o array completo (isso é rápido — é O(n)
-   simples). O que pesava e travava o navegador era jogar TODAS as linhas
-   resultantes no DOM de uma vez; agora só a página atual (ITENS_POR_PAGINA)
-   é renderizada em HTML. */
 function aplicarFiltrosOrdenacaoVisaoGeral(){
   const tituloEl = document.getElementById('tabela-titulo');
+  const meta = document.getElementById('tabela-meta');
+  const body = document.getElementById('tabela-body');
   tituloEl.textContent = tabelaVisaoGeralTitulo;
 
   let dados = tabelaVisaoGeralDados.slice();
@@ -1141,32 +1131,15 @@ function aplicarFiltrosOrdenacaoVisaoGeral(){
     });
   }
 
-  dadosFiltradosVisaoGeralAtual = dados;
-  paginaAtualVisaoGeral = 1;
-  renderPaginaTabelaVisaoGeral();
-  atualizarIndicadoresCabecalhoVisaoGeral();
-}
-
-function renderPaginaTabelaVisaoGeral(){
-  const meta = document.getElementById('tabela-meta');
-  const body = document.getElementById('tabela-body');
-  const dados = dadosFiltradosVisaoGeralAtual;
   const totalOriginal = tabelaVisaoGeralDados.length;
-  const totalFiltrado = dados.length;
-  const totalPaginas = Math.max(1, Math.ceil(totalFiltrado / ITENS_POR_PAGINA));
-  if (paginaAtualVisaoGeral > totalPaginas) paginaAtualVisaoGeral = totalPaginas;
-  if (paginaAtualVisaoGeral < 1) paginaAtualVisaoGeral = 1;
+  meta.textContent = dados.length === totalOriginal
+    ? `${dados.length} endereços`
+    : `${dados.length} de ${totalOriginal} endereços (filtrado)`;
 
-  meta.textContent = totalFiltrado === totalOriginal
-    ? `${totalFiltrado} endereços`
-    : `${totalFiltrado} de ${totalOriginal} endereços (filtrado)`;
-
-  if (totalFiltrado === 0){
+  if (dados.length === 0){
     body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="glyph">∅</div>Nenhum endereço encontrado com os filtros atuais.</div></td></tr>`;
   } else {
-    const inicio = (paginaAtualVisaoGeral - 1) * ITENS_POR_PAGINA;
-    const paginaDados = dados.slice(inicio, inicio + ITENS_POR_PAGINA);
-    body.innerHTML = paginaDados.map(l => `
+    body.innerHTML = dados.map(l => `
       <tr onclick="selecionarLinhaParaFormulario('${(l.sku||'').replace(/'/g,"")}', '${(l.endereco||'').replace(/'/g,"")}', ${Number(l.qtd_reabastecimento ?? 0)}, '${(l.giro_produto||'').replace(/'/g,"")}', '${(l.giro_end||'').replace(/'/g,"")}')">
         <td data-col="0">${l.sku ?? ''}</td>
         <td data-col="1">${l.endereco ?? ''}</td>
@@ -1179,12 +1152,7 @@ function renderPaginaTabelaVisaoGeral(){
     `).join('');
   }
 
-  renderControlesPaginacao('tabela-paginacao', paginaAtualVisaoGeral, totalPaginas, 'mudarPaginaVisaoGeral');
-}
-
-function mudarPaginaVisaoGeral(novaPagina){
-  paginaAtualVisaoGeral = novaPagina;
-  renderPaginaTabelaVisaoGeral();
+  atualizarIndicadoresCabecalhoVisaoGeral();
 }
 
 function atualizarIndicadoresCabecalhoVisaoGeral(){
@@ -1345,8 +1313,6 @@ let ordenacaoAnalise = { col: null, dir: null };
 let analiseLinhaSelecionadaId = null;
 let colunaFiltroAtualAnalise = null;
 let valoresTempSelecionadosAnalise = new Set();
-let paginaAtualAnalise = 1;
-let dadosFiltradosAnaliseAtual = [];
 
 function valorColunaAnalise(linha, idx){
   const v = linha[COL_PROP_ANALISE[idx]];
@@ -1383,7 +1349,7 @@ async function carregarAnalise(forcar){
   aplicarFiltrosOrdenacaoAnalise();
 }
 
-function aplicarFiltrosOrdenacaoAnalise(manterPagina){
+function aplicarFiltrosOrdenacaoAnalise(){
   let dados = analiseLinhasCache.slice();
 
   Object.keys(filtrosColunaAnalise).forEach(idxStr => {
@@ -1407,9 +1373,7 @@ function aplicarFiltrosOrdenacaoAnalise(manterPagina){
     });
   }
 
-  dadosFiltradosAnaliseAtual = dados;
-  if (!manterPagina) paginaAtualAnalise = 1;
-  renderPaginaTabelaAnalise();
+  renderTabelaAnalise(dados);
   atualizarIndicadoresCabecalhoAnalise();
 
   const banner = document.getElementById('analise-selecao-banner');
@@ -1443,18 +1407,40 @@ function aplicarFiltrosOrdenacaoAnalise(manterPagina){
   document.getElementById('card-total-curva-destino').textContent = totalComCurva.toLocaleString('pt-BR');
   document.getElementById('chart-curva-destino-meta').textContent = linhaSelecionada ? 'movimentação selecionada' : 'distribuição do período';
 
+  /* Alocação: compara o giro do item (Curva do Produto) com o giro do endereço
+     (Curva do Endereço), ambos A/B/C. Só entram movimentações com as duas
+     curvas preenchidas — sem uma delas não dá para julgar a compatibilidade. */
+  let alocAdequada = 0, alocDiferente = 0;
+  dadosParaCards.forEach(l => {
+    const curvaItem = (l.curva_produto ?? '').toString().trim().toUpperCase();
+    const curvaEnd = (l.curva_endereco ?? '').toString().trim().toUpperCase();
+    if (!curvaItem || !curvaEnd) return;
+    if (curvaItem === curvaEnd) alocAdequada++; else alocDiferente++;
+  });
+  const totalAvaliado = alocAdequada + alocDiferente;
+  const pctDiferente = totalAvaliado > 0 ? (alocDiferente / totalAvaliado) * 100 : 0;
+  const pctAdequada = totalAvaliado > 0 ? (alocAdequada / totalAvaliado) * 100 : 0;
+  document.getElementById('card-alocacao-diferente').textContent = totalAvaliado > 0 ? pctDiferente.toFixed(1) + '%' : '–';
+  document.getElementById('card-alocacao-adequada').textContent = totalAvaliado > 0 ? pctAdequada.toFixed(1) + '%' : '–';
+  document.getElementById('card-alocacao-diferente-sub').textContent = totalAvaliado > 0
+    ? `${alocDiferente} de ${totalAvaliado} movimentações com giro do item ≠ giro do endereço`
+    : 'sem movimentações com as duas curvas preenchidas';
+  document.getElementById('card-alocacao-adequada-sub').textContent = totalAvaliado > 0
+    ? `${alocAdequada} de ${totalAvaliado} movimentações com giro do item = giro do endereço`
+    : 'sem movimentações com as duas curvas preenchidas';
+
   renderChartReabastecimento(totalAnterior, totalEstimado);
   renderChartCurvaDestino(porCurvaDestino);
 }
 
 function selecionarLinhaAnalise(id){
   analiseLinhaSelecionadaId = (analiseLinhaSelecionadaId === id) ? null : id;
-  aplicarFiltrosOrdenacaoAnalise(true);
+  aplicarFiltrosOrdenacaoAnalise();
 }
 
 function limparSelecaoAnalise(){
   analiseLinhaSelecionadaId = null;
-  aplicarFiltrosOrdenacaoAnalise(true);
+  aplicarFiltrosOrdenacaoAnalise();
 }
 
 function renderChartReabastecimento(totalAnterior, totalEstimado){
@@ -1526,46 +1512,32 @@ function renderChartCurvaDestino(porCurva){
   });
 }
 
-function renderPaginaTabelaAnalise(){
+function renderTabelaAnalise(linhas){
   const body = document.getElementById('analise-tabela-body');
   const meta = document.getElementById('analise-tabela-meta');
-  const dados = dadosFiltradosAnaliseAtual;
   const totalOriginal = analiseLinhasCache.length;
-  const totalFiltrado = dados.length;
-  const totalPaginas = Math.max(1, Math.ceil(totalFiltrado / ITENS_POR_PAGINA));
-  if (paginaAtualAnalise > totalPaginas) paginaAtualAnalise = totalPaginas;
-  if (paginaAtualAnalise < 1) paginaAtualAnalise = 1;
+  meta.textContent = linhas.length === totalOriginal
+    ? `${linhas.length} movimentações`
+    : `${linhas.length} de ${totalOriginal} movimentações (filtrado)`;
 
-  meta.textContent = totalFiltrado === totalOriginal
-    ? `${totalFiltrado} movimentações`
-    : `${totalFiltrado} de ${totalOriginal} movimentações (filtrado)`;
-
-  if (totalFiltrado === 0){
+  if (linhas.length === 0){
     body.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="glyph">∅</div>Nenhuma movimentação encontrada.</div></td></tr>`;
-  } else {
-    const inicio = (paginaAtualAnalise - 1) * ITENS_POR_PAGINA;
-    const paginaDados = dados.slice(inicio, inicio + ITENS_POR_PAGINA);
-    body.innerHTML = paginaDados.map(l => `
-      <tr class="${l.id === analiseLinhaSelecionadaId ? 'linha-selecionada' : ''}" onclick="selecionarLinhaAnalise(${l.id})">
-        <td data-col="0">${l.dt_movimentacao ?? ''}</td>
-        <td data-col="1">${l.sku ?? ''}</td>
-        <td data-col="2">${l.endereco_origem ?? ''}</td>
-        <td data-col="3">${l.qtd_reabast_anterior ?? 0}</td>
-        <td data-col="4">${l.endereco_destino ?? ''}</td>
-        <td data-col="5">${l.qtd_reabast_novo ?? 0}</td>
-        <td data-col="6">${l.curva_produto ?? ''}</td>
-        <td data-col="7">${l.curva_endereco ?? ''}</td>
-        <td data-col="8">${l.curva_endereco_destino ?? ''}</td>
-      </tr>
-    `).join('');
+    return;
   }
 
-  renderControlesPaginacao('analise-tabela-paginacao', paginaAtualAnalise, totalPaginas, 'mudarPaginaAnalise');
-}
-
-function mudarPaginaAnalise(novaPagina){
-  paginaAtualAnalise = novaPagina;
-  renderPaginaTabelaAnalise();
+  body.innerHTML = linhas.map(l => `
+    <tr class="${l.id === analiseLinhaSelecionadaId ? 'linha-selecionada' : ''}" onclick="selecionarLinhaAnalise(${l.id})">
+      <td data-col="0">${l.dt_movimentacao ?? ''}</td>
+      <td data-col="1">${l.sku ?? ''}</td>
+      <td data-col="2">${l.endereco_origem ?? ''}</td>
+      <td data-col="3">${l.qtd_reabast_anterior ?? 0}</td>
+      <td data-col="4">${l.endereco_destino ?? ''}</td>
+      <td data-col="5">${l.qtd_reabast_novo ?? 0}</td>
+      <td data-col="6">${l.curva_produto ?? ''}</td>
+      <td data-col="7">${l.curva_endereco ?? ''}</td>
+      <td data-col="8">${l.curva_endereco_destino ?? ''}</td>
+    </tr>
+  `).join('');
 }
 
 function atualizarIndicadoresCabecalhoAnalise(){
@@ -1577,6 +1549,18 @@ function atualizarIndicadoresCabecalhoAnalise(){
 }
 
 /* ---------------------------- Painel de filtro/ordenação por coluna — Análise ---------------------------- */
+let valoresSnapshotAnalise = new Set();
+
+function atualizarContadorFiltroAnalise(){
+  const checks = [...document.querySelectorAll('#filtro-coluna-lista-analise input[type=checkbox]')];
+  const visiveis = checks.filter(c => c.closest('.col-check-row').style.display !== 'none');
+  const marcadosVisiveis = visiveis.filter(c => c.checked).length;
+  document.getElementById('filtro-coluna-todos-analise').checked = visiveis.length > 0 && marcadosVisiveis === visiveis.length;
+  document.getElementById('filtro-coluna-contador-analise').textContent =
+    `${valoresTempSelecionadosAnalise.size} de ${checks.length} valor(es) selecionado(s)` +
+    (visiveis.length !== checks.length ? ` · ${visiveis.length} exibido(s) na busca` : '');
+}
+
 function abrirFiltroColunaAnalise(ev, idx){
   ev.stopPropagation();
   colunaFiltroAtualAnalise = idx;
@@ -1584,20 +1568,22 @@ function abrirFiltroColunaAnalise(ev, idx){
   const valoresUnicos = [...new Set(analiseLinhasCache.map(l => String(valorColunaAnalise(l, idx))))]
     .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
   const selecionadosAtuais = filtrosColunaAnalise[idx] || new Set(valoresUnicos);
+  valoresSnapshotAnalise = new Set(selecionadosAtuais);
   valoresTempSelecionadosAnalise = new Set(selecionadosAtuais);
 
   const lista = document.getElementById('filtro-coluna-lista-analise');
   lista.innerHTML = valoresUnicos.map(v => {
-    const escapado = v.replace(/"/g, '&quot;');
+    const escapado = v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const rotulo = v === '' ? '(vazio)' : v.replace(/&/g, '&amp;').replace(/</g, '&lt;');
     return `
       <label class="col-check-row">
         <input type="checkbox" data-valor="${escapado}" ${valoresTempSelecionadosAnalise.has(v) ? 'checked' : ''} onchange="alternarValorColunaAnalise(this.dataset.valor, this.checked)">
-        ${v === '' ? '(vazio)' : v}
+        ${rotulo}
       </label>`;
   }).join('');
 
-  document.getElementById('filtro-coluna-todos-analise').checked = valoresTempSelecionadosAnalise.size === valoresUnicos.length;
   document.getElementById('filtro-coluna-busca-analise').value = '';
+  atualizarContadorFiltroAnalise();
 
   const painel = document.getElementById('filtro-coluna-painel-analise');
   const rect = ev.currentTarget.getBoundingClientRect();
@@ -1605,31 +1591,57 @@ function abrirFiltroColunaAnalise(ev, idx){
   const larguraPainel = 230;
   painel.style.top = (rect.bottom + 4) + 'px';
   painel.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - larguraPainel - 12)) + 'px';
+  document.getElementById('filtro-coluna-busca-analise').focus();
 }
 
 function alternarValorColunaAnalise(valor, marcado){
   if (marcado) valoresTempSelecionadosAnalise.add(valor); else valoresTempSelecionadosAnalise.delete(valor);
+  atualizarContadorFiltroAnalise();
 }
 
+/* "Selecionar tudo" age só sobre os valores exibidos (respeita a busca). */
 function alternarTodosValoresColunaAnalise(marcado){
-  const checks = document.querySelectorAll('#filtro-coluna-lista-analise input[type=checkbox]');
-  checks.forEach(c => {
+  document.querySelectorAll('#filtro-coluna-lista-analise input[type=checkbox]').forEach(c => {
     if (c.closest('.col-check-row').style.display === 'none') return;
     c.checked = marcado;
     if (marcado) valoresTempSelecionadosAnalise.add(c.dataset.valor); else valoresTempSelecionadosAnalise.delete(c.dataset.valor);
   });
+  atualizarContadorFiltroAnalise();
 }
 
+/* Como no Excel: ao digitar na busca, a lista mostra só os resultados e a
+   seleção passa a ser exatamente esses resultados. Apagar a busca volta à
+   seleção que existia ao abrir o painel. */
 function filtrarListaValoresColunaAnalise(){
-  const termo = document.getElementById('filtro-coluna-busca-analise').value.toLowerCase();
-  document.querySelectorAll('#filtro-coluna-lista-analise .col-check-row').forEach(row => {
-    row.style.display = row.textContent.toLowerCase().includes(termo) ? 'flex' : 'none';
-  });
+  const termo = document.getElementById('filtro-coluna-busca-analise').value.trim().toLowerCase();
+  const checks = document.querySelectorAll('#filtro-coluna-lista-analise input[type=checkbox]');
+
+  if (!termo){
+    valoresTempSelecionadosAnalise = new Set(valoresSnapshotAnalise);
+    checks.forEach(c => {
+      c.closest('.col-check-row').style.display = 'flex';
+      c.checked = valoresTempSelecionadosAnalise.has(c.dataset.valor);
+    });
+  } else {
+    valoresTempSelecionadosAnalise = new Set();
+    checks.forEach(c => {
+      const valor = c.dataset.valor;
+      const bate = (valor === '' ? '(vazio)' : valor).toLowerCase().includes(termo);
+      c.closest('.col-check-row').style.display = bate ? 'flex' : 'none';
+      c.checked = bate;
+      if (bate) valoresTempSelecionadosAnalise.add(valor);
+    });
+  }
+  atualizarContadorFiltroAnalise();
 }
 
 function aplicarFiltroColunaAtualAnalise(){
   if (colunaFiltroAtualAnalise === null) return;
   const totalValores = document.querySelectorAll('#filtro-coluna-lista-analise .col-check-row').length;
+  if (valoresTempSelecionadosAnalise.size === 0){
+    mostrarToast('Nenhum valor selecionado — marque ao menos um ou use "Limpar"', true);
+    return;
+  }
   if (valoresTempSelecionadosAnalise.size >= totalValores){
     delete filtrosColunaAnalise[colunaFiltroAtualAnalise];
   } else {
