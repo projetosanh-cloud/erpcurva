@@ -607,9 +607,6 @@
 <script>
 /* ==========================================================================
    CONFIGURAÇÃO DO SUPABASE
-   Substitua os dois valores abaixo pelas credenciais do seu projeto Supabase
-   (Project Settings > API). Rode o SQL do bloco de comentário no final deste
-   arquivo para criar as 4 tabelas antes do primeiro uso.
    ========================================================================== */
 const SUPABASE_URL = 'https://vemakimyjjilntgojwfz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlbWFraW15amppbG50Z29qd2Z6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MzkxODMsImV4cCI6MjEwMDIxNTE4M30.Dhae6Eg0RWzS3izOnOC6-dKD6Sx7yVgPaTzP6XKjXqw';
@@ -723,15 +720,7 @@ async function checarConexao(){
 }
 
 /* ==========================================================================
-   CACHE LOCAL (reduz consumo de egress do Supabase)
-   Guarda os dados já buscados enquanto a página estiver aberta; trocar de
-   aba, clicar em cards/áreas ou reabrir a mesma base não gera nova consulta
-   ao banco. O cache só é limpo quando: (1) o usuário clica em "Atualizar",
-   ou (2) uma ação de escrita acontece (salvar, editar, excluir, importar,
-   excluir base) — nesses casos o dado correspondente é buscado de novo na
-   hora. Não expira sozinho por tempo: se outra pessoa alterar dados pelo
-   Supabase enquanto sua aba está aberta, isso só aparece pra você depois de
-   clicar em "Atualizar" ou recarregar a página.
+   CACHE LOCAL
    ========================================================================== */
 let cacheDados = {};
 
@@ -773,7 +762,7 @@ function selecionarAbaBase(tabela){
   ultimoFiltroCard = null;
   ultimoFiltroGiro = null;
   document.getElementById('card-alerta').classList.remove('selected');
-  carregarCardsVisaoGeral(); // as duas bases já foram pré-carregadas — não gera nova consulta
+  carregarCardsVisaoGeral();
 }
 
 async function obterLimitesConfigurados(forcar){
@@ -814,9 +803,6 @@ async function obterDadosBaseVisaoGeral(tabela, forcar){
   return dados;
 }
 
-/* Busca as DUAS bases em paralelo (uma única vez, graças ao cache) — assim
-   trocar entre as abas "6 meses" / "1 mês" nunca gera nova consulta depois
-   do primeiro carregamento da Visão Geral. */
 async function precarregarBasesVisaoGeral(forcar){
   const [seis, um] = await Promise.all([
     obterDadosBaseVisaoGeral('inventario_6meses', forcar),
@@ -861,7 +847,7 @@ function selecionarMes1Mes(mes){
   ultimoFiltroCard = null;
   ultimoFiltroGiro = null;
   document.getElementById('card-alerta').classList.remove('selected');
-  carregarCardsVisaoGeral(); // usa cache, sem nova consulta
+  carregarCardsVisaoGeral();
 }
 
 async function excluirMes1Mes(mes){
@@ -883,9 +869,6 @@ async function excluirMes1Mes(mes){
   }
 }
 
-/* Retorna os registros da base/aba atualmente selecionada, já filtrados
-   pelo mês escolhido quando a aba for "1 mês". Não consulta o banco — usa
-   o que já está em cache (buscado em precarregarBasesVisaoGeral). */
 function registrosVisaoGeralAtuais(basesCarregadas){
   const todos = basesCarregadas[abaBaseAtual] || [];
   if (abaBaseAtual === 'inventario_1mes' && mesSelecionado1Mes){
@@ -954,8 +937,6 @@ async function carregarCardsVisaoGeral(forcar){
   renderCardsGiro(todosRegistros);
 }
 
-/* Cards de Giro do Produto — filtro independente dos cards de alerta/área:
-   clicar aqui não altera a seleção deles, e vice-versa. */
 function renderCardsGiro(todosRegistros){
   const giroRow = document.getElementById('giro-cards-row');
   const giroMeta = document.getElementById('giro-cards-meta');
@@ -1004,10 +985,6 @@ async function filtrarPorGiro(giro){
   renderTabelaVisaoGeral(data, `Endereços com Giro do Produto ${giro}`);
 }
 
-/* Busca livre por SKU, descrição ou endereço — independente dos cards de
-   alerta/área/giro: não exige estar acima do limite nem pertencer a nenhuma
-   categoria, então encontra registros que os outros filtros não mostram.
-   Vale para a aba de 6 meses e para a de 1 mês (mês selecionado). */
 async function buscarVisaoGeral(){
   if (!exigirSupabase()) return;
   const termoOriginal = document.getElementById('visao-busca').value.trim();
@@ -1075,7 +1052,7 @@ async function filtrarPorArea(area){
     })
     .sort((a,b) => String(a.endereco ?? '').localeCompare(String(b.endereco ?? ''), 'pt-BR', {numeric:true}));
 
-  carregarCardsVisaoGeral(); // reflete a seleção visual no card (usa cache, sem nova consulta)
+  carregarCardsVisaoGeral();
   renderTabelaVisaoGeral(data, `Endereços acima do limite — Área ${area}`);
 }
 
@@ -1163,7 +1140,6 @@ function atualizarIndicadoresCabecalhoVisaoGeral(){
   });
 }
 
-/* ---------------------------- Painel de filtro/ordenação por coluna (estilo Excel) ---------------------------- */
 function abrirFiltroColuna(ev, idx){
   ev.stopPropagation();
   colunaFiltroAtual = idx;
@@ -1247,9 +1223,8 @@ document.addEventListener('click', (ev) => {
   }
 });
 
-
 /* ==========================================================================
-   ABA 3 · FORMULÁRIO — redirecionamento + salvar
+   ABA 3 · FORMULÁRIO
    ========================================================================== */
 function selecionarLinhaParaFormulario(sku, enderecoOrigem, qtdReabastecimentoAtual, giroProduto, giroEndereco){
   const hoje = new Date().toISOString().split('T')[0];
@@ -1292,7 +1267,6 @@ async function salvarMovimentacao(ev){
   limparFormulario();
 }
 
-/* ---------------------------- Dados compartilhados: movimentações salvas ---------------------------- */
 async function obterMovimentacoesTodas(forcar){
   const chave = 'movimentacoes_formulario';
   if (!forcar && cacheValido(chave)) return cacheObter(chave);
@@ -1302,7 +1276,7 @@ async function obterMovimentacoesTodas(forcar){
 }
 
 /* ==========================================================================
-   ABA 2 · ANÁLISE
+   ABA 2 · ANÁLISE (Alocação calculada a partir da Base de 1 Mês)
    ========================================================================== */
 let chartReabastecimento;
 let chartCurvaDestino;
@@ -1333,6 +1307,7 @@ async function carregarAnalise(forcar){
   let todas;
   try{
     todas = await obterMovimentacoesTodas(forcar);
+    await obterDadosBaseVisaoGeral('inventario_1mes', forcar);
   }catch(error){
     mostrarToast('Erro ao carregar movimentações', true); console.error(error); return;
   }
@@ -1395,7 +1370,7 @@ function aplicarFiltrosOrdenacaoAnalise(){
   document.getElementById('card-total-estimado').textContent = totalEstimado.toLocaleString('pt-BR');
   document.getElementById('card-reducao-real').textContent = reducaoReal.toLocaleString('pt-BR');
   document.getElementById('card-reducao-percentual').textContent = reducaoPercentual.toFixed(1) + '%';
-  document.getElementById('chart-reabastecimento-meta').textContent = linhaSelecionada ? 'movimentação selecionada' : 'totais do período';
+  document.getElementById('chart-reabastecimento-meta').textContent = linhaSelecionada ? 'movimentação selecionada' : 'totais duros do período';
 
   const porCurvaDestino = {};
   dadosParaCards.forEach(l => {
@@ -1407,27 +1382,51 @@ function aplicarFiltrosOrdenacaoAnalise(){
   document.getElementById('card-total-curva-destino').textContent = totalComCurva.toLocaleString('pt-BR');
   document.getElementById('chart-curva-destino-meta').textContent = linhaSelecionada ? 'movimentação selecionada' : 'distribuição do período';
 
-  /* Alocação: compara o giro do item (Curva do Produto) com o giro do endereço
-     (Curva do Endereço), ambos A/B/C. Só entram movimentações com as duas
-     curvas preenchidas — sem uma delas não dá para julgar a compatibilidade. */
+  /* ========================================================================
+     CÁLCULO CORRIGIDO: Normaliza "Curva A" para "A" e compara com Giro Produto
+     ======================================================================== */
   let alocAdequada = 0, alocDiferente = 0;
-  dadosParaCards.forEach(l => {
-    const curvaItem = (l.curva_produto ?? '').toString().trim().toUpperCase();
-    const curvaEnd = (l.curva_endereco ?? '').toString().trim().toUpperCase();
-    if (!curvaItem || !curvaEnd) return;
-    if (curvaItem === curvaEnd) alocAdequada++; else alocDiferente++;
+  
+  const bases = cacheObter('base_inventario_1mes') || [];
+  
+  const mesesDisponiveis = [...new Set(bases.map(r => r.mes).filter(Boolean))];
+  let mesAlvo = (typeof mesSelecionado1Mes !== 'undefined' && mesSelecionado1Mes) ? mesSelecionado1Mes : null;
+  if (!mesAlvo && mesesDisponiveis.length > 0) {
+    mesesDisponiveis.sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
+    mesAlvo = mesesDisponiveis[mesesDisponiveis.length - 1];
+  }
+  
+  const dadosBase1Mes = mesAlvo ? bases.filter(r => r.mes === mesAlvo) : bases;
+
+  dadosBase1Mes.forEach(item => {
+    const curvaProduto = (item.giro_produto ?? '').toString().trim().toUpperCase();
+    
+    // Pega o Giro End, converte para maiúsculo e remove a palavra "CURVA" (ex: "CURVA A" vira "A")
+    let curvaEndereco = (item.giro_end ?? '').toString().trim().toUpperCase();
+    curvaEndereco = curvaEndereco.replace(/CURVA/g, '').trim();
+    
+    // Ignora registros vazios, traços, zeros ou valores inválidos
+    if (!curvaProduto || !curvaEndereco || curvaProduto === '-' || curvaEndereco === '-' || curvaProduto === '0' || curvaEndereco === '0' || curvaProduto === 'N/A' || curvaEndereco === 'N/A') return;
+    
+    if (curvaProduto === curvaEndereco) {
+      alocAdequada++;
+    } else {
+      alocDiferente++;
+    }
   });
+
   const totalAvaliado = alocAdequada + alocDiferente;
   const pctDiferente = totalAvaliado > 0 ? (alocDiferente / totalAvaliado) * 100 : 0;
   const pctAdequada = totalAvaliado > 0 ? (alocAdequada / totalAvaliado) * 100 : 0;
+
   document.getElementById('card-alocacao-diferente').textContent = totalAvaliado > 0 ? pctDiferente.toFixed(1) + '%' : '–';
   document.getElementById('card-alocacao-adequada').textContent = totalAvaliado > 0 ? pctAdequada.toFixed(1) + '%' : '–';
   document.getElementById('card-alocacao-diferente-sub').textContent = totalAvaliado > 0
-    ? `${alocDiferente} de ${totalAvaliado} movimentações com giro do item ≠ giro do endereço`
-    : 'sem movimentações com as duas curvas preenchidas';
+    ? `${alocDiferente} de ${totalAvaliado} itens (${mesAlvo || 'geral'}) com Giro Produto ≠ Giro End`
+    : 'sem registros válidos comparáveis na base de 1 mês';
   document.getElementById('card-alocacao-adequada-sub').textContent = totalAvaliado > 0
-    ? `${alocAdequada} de ${totalAvaliado} movimentações com giro do item = giro do endereço`
-    : 'sem movimentações com as duas curvas preenchidas';
+    ? `${alocAdequada} de ${totalAvaliado} itens (${mesAlvo || 'geral'}) com Giro Produto = Giro End`
+    : 'sem registros válidos comparáveis na base de 1 mês';
 
   renderChartReabastecimento(totalAnterior, totalEstimado);
   renderChartCurvaDestino(porCurvaDestino);
@@ -1599,7 +1598,6 @@ function alternarValorColunaAnalise(valor, marcado){
   atualizarContadorFiltroAnalise();
 }
 
-/* "Selecionar tudo" age só sobre os valores exibidos (respeita a busca). */
 function alternarTodosValoresColunaAnalise(marcado){
   document.querySelectorAll('#filtro-coluna-lista-analise input[type=checkbox]').forEach(c => {
     if (c.closest('.col-check-row').style.display === 'none') return;
@@ -1609,9 +1607,6 @@ function alternarTodosValoresColunaAnalise(marcado){
   atualizarContadorFiltroAnalise();
 }
 
-/* Como no Excel: ao digitar na busca, a lista mostra só os resultados e a
-   seleção passa a ser exatamente esses resultados. Apagar a busca volta à
-   seleção que existia ao abrir o painel. */
 function filtrarListaValoresColunaAnalise(){
   const termo = document.getElementById('filtro-coluna-busca-analise').value.trim().toLowerCase();
   const checks = document.querySelectorAll('#filtro-coluna-lista-analise input[type=checkbox]');
@@ -1665,7 +1660,6 @@ function ordenarColunaAtualAnalise(dir){
   aplicarFiltrosOrdenacaoAnalise();
 }
 
-/* ---------------------------- Ocultar/exibir colunas inteiras — Análise ---------------------------- */
 const COLUNAS_ANALISE = [
   { idx: 0, label: 'Data' },
   { idx: 1, label: 'SKU' },
@@ -1746,7 +1740,6 @@ async function salvarConfiguracoes(){
   mostrarToast('Configurações salvas');
 }
 
-/* ---------------------------- Movimentações salvas: listar / editar / excluir ---------------------------- */
 let movimentacoesCache = [];
 let linhaEmEdicaoId = null;
 
@@ -1884,9 +1877,7 @@ async function excluirMovimentacao(id){
   carregarMovimentacoesSalvas(true);
 }
 
-/* ==========================================================================
-   IMPORTAÇÃO DE ARQUIVOS .XLS / .XLSX
-   ========================================================================== */
+/* ---------------------------- Importação de arquivos ---------------------------- */
 function formatarMesAno(valorInputMonth){
   if (!valorInputMonth) return '';
   const [ano, mes] = valorInputMonth.split('-');
@@ -1905,7 +1896,6 @@ async function processarArquivoXLS(arquivo, tabelaDestino, progressId, statusId,
   const workbook = XLSX.read(buffer, { type:'array' });
   const primeiraAba = workbook.Sheets[workbook.SheetNames[0]];
 
-  // Ignora as 2 primeiras linhas de metadados ("Emissão:", "Usuário:") — cabeçalho real na linha 3
   const dadosBrutos = XLSX.utils.sheet_to_json(primeiraAba, { range: 2 });
   status.textContent = `${dadosBrutos.length} linhas lidas, filtrando colunas…`;
   progress.style.width = '30%';
@@ -1982,7 +1972,6 @@ async function processarUploads(){
   }
 }
 
-/* ---------------------------- Exclusão de bases importadas ---------------------------- */
 async function contarRegistros(tabela){
   if (!sb) return null;
   const { count, error } = await sb.from(tabela).select('*', { count:'exact', head:true });
@@ -2034,181 +2023,9 @@ async function excluirBase(tabela, progressId, statusId, contagemId){
   }
 }
 
-/* ---------------------------- Inicialização ---------------------------- */
 document.getElementById('form-data').value = new Date().toISOString().split('T')[0];
 checarConexao();
 carregarCardsVisaoGeral();
-
-/* ==========================================================================
-SQL — script único e idempotente. Rode o arquivo setup_supabase.sql inteiro
-no SQL Editor do Supabase (cria tudo do zero OU atualiza um banco que já
-tenha essas tabelas, sem apagar dados — todo comando usa IF NOT EXISTS).
-
--- ============================================================================
--- SETUP COMPLETO — Dashboard Curva ABC & Reabastecimento (Anhanguera)
--- Rode este arquivo inteiro no SQL Editor do Supabase.
--- É seguro rodar mais de uma vez: todo comando usa IF NOT EXISTS, então
--- funciona tanto num projeto novo quanto para atualizar um banco que já
--- tem essas tabelas (nada é apagado, nenhum dado é perdido).
--- ============================================================================
-
-
--- ============================================================================
--- 1. TABELAS
--- ============================================================================
-
--- Base de picking dos últimos 6 meses (substituída inteira a cada importação)
-CREATE TABLE IF NOT EXISTS inventario_6meses (
-  id                  BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  cod_end             NUMERIC,
-  endereco            TEXT,
-  area_separacao      NUMERIC,
-  giro_end            TEXT,
-  giro_produto        TEXT,
-  qtd_reabastecimento NUMERIC DEFAULT 0,
-  sku                 TEXT,
-  descricao           TEXT,
-  mes                 TEXT,
-  created_at          TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
-);
-
--- Base de picking do mês corrente (acumula por mês — reenviar um mês
--- substitui só os registros daquele mês, mantendo os demais)
-CREATE TABLE IF NOT EXISTS inventario_1mes (
-  id                  BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  cod_end             NUMERIC,
-  endereco            TEXT,
-  area_separacao      NUMERIC,
-  giro_end            TEXT,
-  giro_produto        TEXT,
-  qtd_reabastecimento NUMERIC DEFAULT 0,
-  sku                 TEXT,
-  descricao           TEXT,
-  mes                 TEXT,
-  created_at          TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
-);
-
--- Movimentações registradas pelo Formulário (manual ou pré-preenchido)
-CREATE TABLE IF NOT EXISTS movimentacoes_formulario (
-  id                     BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  dt_movimentacao        DATE NOT NULL,
-  sku                    TEXT NOT NULL,
-  endereco_origem        TEXT NOT NULL,
-  qtd_reabast_anterior   NUMERIC DEFAULT 0,
-  endereco_destino       TEXT NOT NULL,
-  qtd_reabast_novo       NUMERIC DEFAULT 0,
-  curva_produto          TEXT,
-  curva_endereco         TEXT,
-  curva_endereco_destino TEXT,
-  created_at             TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
-);
-
--- Parâmetros do sistema (sempre lida a linha mais recente por id)
-CREATE TABLE IF NOT EXISTS configuracoes (
-  id                                  BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  periodicidade_reabastecimento_dias  INTEGER DEFAULT 7,
-  limite_alerta_6meses                INTEGER DEFAULT 0,
-  limite_alerta_1mes                  INTEGER DEFAULT 0,
-  updated_at                          TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
-);
-
-
--- ============================================================================
--- 2. COLUNAS DE ATUALIZAÇÕES (garante que bancos criados em versões
---    anteriores do dashboard fiquem com o esquema completo, sem perder dados)
--- ============================================================================
-
-ALTER TABLE inventario_6meses        ADD COLUMN IF NOT EXISTS mes TEXT;
-ALTER TABLE inventario_1mes          ADD COLUMN IF NOT EXISTS mes TEXT;
-
-ALTER TABLE movimentacoes_formulario ADD COLUMN IF NOT EXISTS curva_produto TEXT;
-ALTER TABLE movimentacoes_formulario ADD COLUMN IF NOT EXISTS curva_endereco TEXT;
-ALTER TABLE movimentacoes_formulario ADD COLUMN IF NOT EXISTS curva_endereco_destino TEXT;
-
-ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS limite_alerta_6meses INTEGER DEFAULT 0;
-ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS limite_alerta_1mes INTEGER DEFAULT 0;
-
--- Se a tabela "configuracoes" ainda tiver a coluna antiga
--- "limite_alerta_reabastecimento" (versão com limite único), copia o valor
--- dela como ponto de partida para os dois limites novos.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'configuracoes' AND column_name = 'limite_alerta_reabastecimento'
-  ) THEN
-    UPDATE configuracoes
-      SET limite_alerta_6meses = COALESCE(limite_alerta_6meses, limite_alerta_reabastecimento, 0),
-          limite_alerta_1mes   = COALESCE(limite_alerta_1mes, limite_alerta_reabastecimento, 0)
-      WHERE limite_alerta_reabastecimento IS NOT NULL;
-  END IF;
-END $$;
-
-
--- ============================================================================
--- 3. ÍNDICES (aceleram os filtros e agrupamentos usados no dashboard)
--- ============================================================================
-
-CREATE INDEX IF NOT EXISTS idx_inv6m_sku      ON inventario_6meses(sku);
-CREATE INDEX IF NOT EXISTS idx_inv6m_area     ON inventario_6meses(area_separacao);
-CREATE INDEX IF NOT EXISTS idx_inv6m_reabast  ON inventario_6meses(qtd_reabastecimento);
-CREATE INDEX IF NOT EXISTS idx_inv6m_mes      ON inventario_6meses(mes);
-
-CREATE INDEX IF NOT EXISTS idx_inv1m_sku      ON inventario_1mes(sku);
-CREATE INDEX IF NOT EXISTS idx_inv1m_area     ON inventario_1mes(area_separacao);
-CREATE INDEX IF NOT EXISTS idx_inv1m_reabast  ON inventario_1mes(qtd_reabastecimento);
-CREATE INDEX IF NOT EXISTS idx_inv1m_mes      ON inventario_1mes(mes);
-
-CREATE INDEX IF NOT EXISTS idx_mov_dt         ON movimentacoes_formulario(dt_movimentacao);
-CREATE INDEX IF NOT EXISTS idx_mov_sku        ON movimentacoes_formulario(sku);
-CREATE INDEX IF NOT EXISTS idx_mov_curva_dest ON movimentacoes_formulario(curva_endereco_destino);
-
-
--- ============================================================================
--- 4. ROW LEVEL SECURITY
--- Este dashboard roda 100% no navegador com a chave "anon" (não há login de
--- usuário). Para as importações, o formulário e as edições funcionarem, a
--- chave anon precisa de acesso total (select/insert/update/delete) às 4
--- tabelas. Isso deixa os dados abertos a qualquer pessoa que tenha a URL +
--- chave anon do projeto (visíveis no código-fonte do index.html) — aceitável
--- para uso interno na rede da empresa; se o arquivo puder circular fora
--- disso, considere adicionar autenticação real do Supabase no futuro.
--- ============================================================================
-
-ALTER TABLE inventario_6meses        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE inventario_1mes          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE movimentacoes_formulario ENABLE ROW LEVEL SECURITY;
-ALTER TABLE configuracoes            ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "anon full access" ON inventario_6meses;
-CREATE POLICY "anon full access" ON inventario_6meses
-  FOR ALL TO anon USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "anon full access" ON inventario_1mes;
-CREATE POLICY "anon full access" ON inventario_1mes
-  FOR ALL TO anon USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "anon full access" ON movimentacoes_formulario;
-CREATE POLICY "anon full access" ON movimentacoes_formulario
-  FOR ALL TO anon USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "anon full access" ON configuracoes;
-CREATE POLICY "anon full access" ON configuracoes
-  FOR ALL TO anon USING (true) WITH CHECK (true);
-
-
--- ============================================================================
--- 5. LINHA INICIAL DE CONFIGURAÇÃO (só cria se a tabela estiver vazia)
--- ============================================================================
-
-INSERT INTO configuracoes (periodicidade_reabastecimento_dias, limite_alerta_6meses, limite_alerta_1mes)
-SELECT 7, 0, 0
-WHERE NOT EXISTS (SELECT 1 FROM configuracoes);
-
--- ============================================================================
--- FIM — pronto para colar a URL e a chave anon do projeto no index.html
--- ============================================================================
-========================================================================== */
 </script>
 </body>
 </html>
